@@ -1,0 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 10% 97%;
+    --foreground: 210 11% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 11% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 11% 15%;
+
+    --primary: 198 21% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 225 7% 92%;
+    --secondary-foreground: 210 11% 20%;
+
+    --muted: 210 10% 95%;
+    --muted-foreground: 208 7% 44%;
+
+    --accent: 198 21% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 51% 66%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 5% 85%;
+    --input: 210 5% 85%;
+    --ring: 198 21% 45%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --success: 156 24% 59%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 70% 55%;
+    --warning-foreground: 0 0% 0%;
+    --info: 198 21% 45%;
+    --info-foreground: 0 0% 100%;
+
+    /* Status colors */
+    --status-active: 156 24% 59%;
+    --status-on-hold: 38 70% 55%;
+    --status-completed: 198 21% 45%;
+    --status-dropped: 0 51% 66%;
+    --status-not-started: 210 5% 70%;
+    --status-in-progress: 198 21% 55%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 210 11% 15%;
+    --sidebar-primary: 198 21% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 10% 95%;
+    --sidebar-accent-foreground: 210 11% 15%;
+    --sidebar-border: 210 5% 85%;
+    --sidebar-ring: 198 21% 45%;
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 210 15% 90%;
+    --card: 220 25% 12%;
+    --card-foreground: 210 15% 90%;
+    --popover: 220 25% 12%;
+    --popover-foreground: 210 15% 90%;
+    --primary: 215 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 210 15% 85%;
+    --muted: 220 15% 16%;
+    --muted-foreground: 215 12% 55%;
+    --accent: 172 50% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 215 70% 55%;
+    --sidebar-background: 220 30% 6%;
+    --sidebar-foreground: 210 15% 75%;
+    --sidebar-primary: 215 70% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 12%;
+    --sidebar-accent-foreground: 210 15% 85%;
+    --sidebar-border: 220 15% 14%;
+    --sidebar-ring: 215 70% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  /* macOS Style Glass Utilities */
+  .glass-panel {
+    @apply bg-background/80 backdrop-blur-xl border border-border/50 shadow-sm;
+  }
+
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-md border border-border/40 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300;
+  }
+
+  /* Animations */
+  @keyframes slide-in-bottom {
+    0% {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-scale {
+    0% {
+      transform: scale(0.98);
+      opacity: 0;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in {
+    animation: slide-in-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-fade-scale {
+    animation: fade-scale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Smooth scroll across app */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+  }
+
+  /* Hide scrollbar for clean UI but allow scrolling */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+  }
+}
