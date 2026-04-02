@@ -46,6 +46,9 @@ export const useAppStore = create(persist((set, get) => ({
   updateTrainer: (id, data) => set((s) => ({
     trainers: s.trainers.map((t) => (t.id === id ? { ...t, ...data } : t)),
   })),
+  deleteTrainer: (id) => set((s) => ({ trainers: s.trainers.filter((t) => t.id !== id) })),
+  setTrainerAttendance: (records) => set({ trainerAttendance: records }),
+  addTrainerObservation: (obs) => set((s) => ({ trainerObservations: [...s.trainerObservations, obs] })),
 
   logAdminEvent: (event) => set((s) => ({
     adminLogs: [{
