@@ -55,6 +55,10 @@ const App = () => (
                     <Route path="/observations" element={<ObservationsPage />} />
                     <Route path="/progress" element={<PerformancePage />} />
                     <Route path="/trainers" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainersPage /></RequireAuth>} />
+                    <Route path="/trainer-attendance" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerAttendancePage /></RequireAuth>} />
+                    <Route path="/trainer-observations" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerObservationsPage /></RequireAuth>} />
+                    <Route path="/trainer-utilization" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerUtilizationPage /></RequireAuth>} />
+                    <Route path="/org-chart" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><OrgChartPage /></RequireAuth>} />
                     <Route path="/feedback" element={<FeedbackPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
                     <Route path="/import" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><ImportManagementPage /></RequireAuth>} />
