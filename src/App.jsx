@@ -12,6 +12,10 @@ import AttendancePage from "./pages/AttendancePage";
 import ObservationsPage from "./pages/ObservationsPage";
 import PerformancePage from "./pages/PerformancePage";
 import TrainersPage from "./pages/TrainersPage";
+import TrainerAttendancePage from "./pages/TrainerAttendancePage";
+import TrainerObservationsPage from "./pages/TrainerObservationsPage";
+import TrainerUtilizationPage from "./pages/TrainerUtilizationPage";
+import OrgChartPage from "./pages/OrgChartPage";
 import TrainerFormPage from "./pages/TrainerFormPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -51,6 +55,10 @@ const App = () => (
                     <Route path="/observations" element={<ObservationsPage />} />
                     <Route path="/progress" element={<PerformancePage />} />
                     <Route path="/trainers" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainersPage /></RequireAuth>} />
+                    <Route path="/trainer-attendance" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerAttendancePage /></RequireAuth>} />
+                    <Route path="/trainer-observations" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerObservationsPage /></RequireAuth>} />
+                    <Route path="/trainer-utilization" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerUtilizationPage /></RequireAuth>} />
+                    <Route path="/org-chart" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><OrgChartPage /></RequireAuth>} />
                     <Route path="/feedback" element={<FeedbackPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
                     <Route path="/import" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><ImportManagementPage /></RequireAuth>} />

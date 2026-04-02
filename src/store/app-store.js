@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { mockStudents, mockTrainers, mockSessions, mockAttendance, mockObservations, mockFeedback, mockOptions, mockImportStatus, mockProgress, mockTrainings, mockEnrollments, mockTemplates, systemHolidays } from "@/lib/mock-data";
 import { mockTieredAttendance, mockAuditEntries } from "@/lib/import-mock-data";
+import { mockTrainerAttendance, mockTrainerObservations, mockTrainerUtilization } from "@/lib/phase2-mock-data";
 import { addDays, isWeekend, format, parseISO } from "date-fns";
 
 export const useAppStore = create(persist((set, get) => ({
@@ -22,6 +23,9 @@ export const useAppStore = create(persist((set, get) => ({
   auditEntries: mockAuditEntries,
   trainings: mockTrainings,
   enrollments: mockEnrollments,
+  trainerAttendance: mockTrainerAttendance,
+  trainerObservations: mockTrainerObservations,
+  trainerUtilization: mockTrainerUtilization,
   notifications: [
     { id: "n1", message: "New feedback received from Supervisor", read: false, date: "2026-03-03" },
     { id: "n2", message: "Import completed: 47 records processed", read: true, date: "2026-03-03" },
@@ -42,6 +46,9 @@ export const useAppStore = create(persist((set, get) => ({
   updateTrainer: (id, data) => set((s) => ({
     trainers: s.trainers.map((t) => (t.id === id ? { ...t, ...data } : t)),
   })),
+  deleteTrainer: (id) => set((s) => ({ trainers: s.trainers.filter((t) => t.id !== id) })),
+  setTrainerAttendance: (records) => set({ trainerAttendance: records }),
+  addTrainerObservation: (obs) => set((s) => ({ trainerObservations: [...s.trainerObservations, obs] })),
 
   logAdminEvent: (event) => set((s) => ({
     adminLogs: [{

@@ -8,6 +8,8 @@ import {
   Activity,
   LogOut,
   History,
+  BarChart3,
+  Network,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -37,7 +39,12 @@ const getSupervisorNav = () => [
   { title: "Trainer Form", url: "/trainer-form", icon: UserCog },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Students", url: "/students", icon: Users },
+  { title: "Trainers", url: "/trainers", icon: Users },
   { title: "Progress", url: "/progress", icon: Activity },
+  { title: "Trainer Attendance", url: "/trainer-attendance", icon: ClipboardCheck },
+  { title: "Trainer Observations", url: "/trainer-observations", icon: Eye },
+  { title: "Trainer Utilization", url: "/trainer-utilization", icon: BarChart3 },
+  { title: "Org Chart", url: "/org-chart", icon: Network },
   { title: "Audit Trail", url: "/audit", icon: History },
 ];
 
