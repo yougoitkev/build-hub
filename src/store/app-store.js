@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { mockStudents, mockTrainers, mockSessions, mockAttendance, mockObservations, mockFeedback, mockOptions, mockImportStatus, mockProgress, mockTrainings, mockEnrollments, mockTemplates, systemHolidays } from "@/lib/mock-data";
 import { mockTieredAttendance, mockAuditEntries } from "@/lib/import-mock-data";
+import { mockTrainerAttendance, mockTrainerObservations, mockTrainerUtilization } from "@/lib/phase2-mock-data";
 import { addDays, isWeekend, format, parseISO } from "date-fns";
 
 export const useAppStore = create(persist((set, get) => ({
