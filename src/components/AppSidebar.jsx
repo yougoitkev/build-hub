@@ -8,6 +8,8 @@ import {
   Activity,
   LogOut,
   History,
+  BarChart3,
+  Network,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
