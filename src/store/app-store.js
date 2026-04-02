@@ -23,6 +23,9 @@ export const useAppStore = create(persist((set, get) => ({
   auditEntries: mockAuditEntries,
   trainings: mockTrainings,
   enrollments: mockEnrollments,
+  trainerAttendance: mockTrainerAttendance,
+  trainerObservations: mockTrainerObservations,
+  trainerUtilization: mockTrainerUtilization,
   notifications: [
     { id: "n1", message: "New feedback received from Supervisor", read: false, date: "2026-03-03" },
     { id: "n2", message: "Import completed: 47 records processed", read: true, date: "2026-03-03" },
