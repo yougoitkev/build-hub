@@ -12,6 +12,10 @@ import AttendancePage from "./pages/AttendancePage";
 import ObservationsPage from "./pages/ObservationsPage";
 import PerformancePage from "./pages/PerformancePage";
 import TrainersPage from "./pages/TrainersPage";
+import TrainerAttendancePage from "./pages/TrainerAttendancePage";
+import TrainerObservationsPage from "./pages/TrainerObservationsPage";
+import TrainerUtilizationPage from "./pages/TrainerUtilizationPage";
+import OrgChartPage from "./pages/OrgChartPage";
 import TrainerFormPage from "./pages/TrainerFormPage";
 import FeedbackPage from "./pages/FeedbackPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -21,6 +25,11 @@ import AuditPage from "./pages/AuditPage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import CreateProgramPage from "./pages/CreateProgramPage";
+import SkillsMatrixPage from "./pages/SkillsMatrixPage";
+import AvailabilityPage from "./pages/AvailabilityPage";
+import TasksPage from "./pages/TasksPage";
+import MaterialsPage from "./pages/MaterialsPage";
+import CertificationsPage from "./pages/CertificationsPage";
 import { RequireAuth } from "./components/auth/RequireAuth";
 
 const queryClient = new QueryClient();
@@ -51,10 +60,20 @@ const App = () => (
                     <Route path="/observations" element={<ObservationsPage />} />
                     <Route path="/progress" element={<PerformancePage />} />
                     <Route path="/trainers" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainersPage /></RequireAuth>} />
+                    <Route path="/trainer-attendance" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerAttendancePage /></RequireAuth>} />
+                    <Route path="/trainer-observations" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerObservationsPage /></RequireAuth>} />
+                    <Route path="/trainer-utilization" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerUtilizationPage /></RequireAuth>} />
+                    <Route path="/org-chart" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><OrgChartPage /></RequireAuth>} />
                     <Route path="/feedback" element={<FeedbackPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
+                    <Route path="/skills-matrix" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><SkillsMatrixPage /></RequireAuth>} />
+                    <Route path="/availability" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><AvailabilityPage /></RequireAuth>} />
+                    <Route path="/tasks" element={<TasksPage />} />
+                    <Route path="/materials" element={<MaterialsPage />} />
+                    <Route path="/certifications" element={<CertificationsPage />} />
                     <Route path="/import" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><ImportManagementPage /></RequireAuth>} />
                     <Route path="/audit" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><AuditPage /></RequireAuth>} />
+                    <Route path="*" element={<NotFound />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AppShell>

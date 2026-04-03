@@ -8,6 +8,13 @@ import {
   Activity,
   LogOut,
   History,
+  BarChart3,
+  Network,
+  Grid3X3,
+  CalendarOff,
+  ListTodo,
+  FileText,
+  Award,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -37,7 +44,17 @@ const getSupervisorNav = () => [
   { title: "Trainer Form", url: "/trainer-form", icon: UserCog },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Students", url: "/students", icon: Users },
+  { title: "Trainers", url: "/trainers", icon: Users },
+  { title: "Skills Matrix", url: "/skills-matrix", icon: Grid3X3 },
+  { title: "Availability", url: "/availability", icon: CalendarOff },
+  { title: "Tasks", url: "/tasks", icon: ListTodo },
+  { title: "Materials", url: "/materials", icon: FileText },
+  { title: "Certifications", url: "/certifications", icon: Award },
   { title: "Progress", url: "/progress", icon: Activity },
+  { title: "Trainer Attendance", url: "/trainer-attendance", icon: ClipboardCheck },
+  { title: "Trainer Observations", url: "/trainer-observations", icon: Eye },
+  { title: "Trainer Utilization", url: "/trainer-utilization", icon: BarChart3 },
+  { title: "Org Chart", url: "/org-chart", icon: Network },
   { title: "Audit Trail", url: "/audit", icon: History },
 ];
 
@@ -45,6 +62,9 @@ const getTrainerNav = () => [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Students", url: "/students", icon: Users },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
+  { title: "Tasks", url: "/tasks", icon: ListTodo },
+  { title: "Materials", url: "/materials", icon: FileText },
+  { title: "Certifications", url: "/certifications", icon: Award },
   { title: "Progress", url: "/progress", icon: Activity },
   { title: "Attendance", url: "/attendance", icon: ClipboardCheck },
   { title: "Observations", url: "/observations", icon: Eye },
