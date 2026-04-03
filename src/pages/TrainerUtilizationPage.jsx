@@ -1,37 +1,78 @@
-import { useState, useMemo } from "react";
-import { useAppStore } from "@/store/app-store";
+import { useEffect, useMemo, useState } from "react";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart3, TrendingUp, Clock, Users, AlertTriangle } from "lucide-react";
+import { BarChart3, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
+import { toast } from "sonner";
+import { api } from "@/data/api";
+import { normalizeTrainerUtilization } from "@/lib/phase-backend";
 
 export default function TrainerUtilizationPage() {
-  const trainerUtilization = useAppStore((s) => s.trainerUtilization || []);
+  const [trainerUtilization, setTrainerUtilization] = useState([]);
   const [period, setPeriod] = useState("quarter");
   const [drillDownTrainer, setDrillDownTrainer] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadData = async () => {
+      setLoading(true);
+
+      try {
+        const response = await api.trainerUtilization.list({ period });
+
+        if (cancelled) {
+          return;
+        }
+
+        setTrainerUtilization((response?.utilization || []).map(normalizeTrainerUtilization));
+      } catch (error) {
+        if (!cancelled) {
+          toast.error("Failed to load trainer utilization");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [period]);
 
   const stats = useMemo(() => {
-    if (!trainerUtilization.length) return { avgUtil: 0, totalBilled: 0, totalAvailable: 0, belowTarget: 0 };
-    const totalBilled = trainerUtilization.reduce((a, t) => a + t.billedHours, 0);
-    const totalAvailable = trainerUtilization.reduce((a, t) => a + t.availableHours, 0);
-    const avgUtil = Math.round((totalBilled / totalAvailable) * 100);
-    const belowTarget = trainerUtilization.filter((t) => (t.billedHours / t.availableHours) * 100 < 60).length;
+    if (!trainerUtilization.length) {
+      return { avgUtil: 0, totalBilled: 0, totalAvailable: 0, belowTarget: 0 };
+    }
+
+    const totalBilled = trainerUtilization.reduce((total, trainer) => total + trainer.billedHours, 0);
+    const totalAvailable = trainerUtilization.reduce((total, trainer) => total + trainer.availableHours, 0);
+    const avgUtil = totalAvailable ? Math.round((totalBilled / totalAvailable) * 100) : 0;
+    const belowTarget = trainerUtilization.filter((trainer) => {
+      const availableHours = trainer.availableHours || 1;
+      return (trainer.billedHours / availableHours) * 100 < 60;
+    }).length;
+
     return { avgUtil, totalBilled, totalAvailable, belowTarget };
   }, [trainerUtilization]);
 
-  const chartData = trainerUtilization.map((t) => ({
-    name: t.trainerName.split(" ")[0],
-    utilization: Math.round((t.billedHours / t.availableHours) * 100),
-    trainerId: t.trainerId,
+  const chartData = trainerUtilization.map((trainer) => ({
+    name: trainer.trainerName.split(" ")[0],
+    utilization: trainer.availableHours ? Math.round((trainer.billedHours / trainer.availableHours) * 100) : 0,
+    trainerId: trainer.trainerId,
   }));
 
-  const getBarColor = (val) => (val >= 80 ? "hsl(142, 76%, 36%)" : val >= 60 ? "hsl(38, 92%, 50%)" : "hsl(0, 84%, 60%)");
-  const getStatusClass = (val) => (val >= 80 ? "text-emerald-600" : val >= 60 ? "text-amber-600" : "text-destructive");
-
-  const drillDown = drillDownTrainer ? trainerUtilization.find((t) => t.trainerId === drillDownTrainer) : null;
+  const getBarColor = (value) => (value >= 80 ? "hsl(142, 76%, 36%)" : value >= 60 ? "hsl(38, 92%, 50%)" : "hsl(0, 84%, 60%)");
+  const getStatusClass = (value) => (value >= 80 ? "text-emerald-600" : value >= 60 ? "text-amber-600" : "text-destructive");
+  const drillDown = drillDownTrainer ? trainerUtilization.find((trainer) => trainer.trainerId === drillDownTrainer) : null;
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
@@ -50,7 +91,6 @@ export default function TrainerUtilizationPage() {
         </Select>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Avg Utilization", value: `${stats.avgUtil}%`, icon: TrendingUp, color: getStatusClass(stats.avgUtil) },
@@ -68,29 +108,31 @@ export default function TrainerUtilizationPage() {
         ))}
       </div>
 
-      {/* Bar Chart */}
       <PremiumCard>
         <PremiumCardContent className="p-6">
           <h3 className="text-sm font-bold mb-4">Utilization by Trainer</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} onClick={(e) => e?.activePayload && setDrillDownTrainer(e.activePayload[0]?.payload?.trainerId)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip formatter={(val) => [`${val}%`, "Utilization"]} />
-                <Bar dataKey="utilization" radius={[6, 6, 0, 0]} cursor="pointer">
-                  {chartData.map((entry, idx) => (
-                    <Cell key={idx} fill={getBarColor(entry.utilization)} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {loading ? (
+            <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">Loading utilization data...</div>
+          ) : (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} onClick={(event) => event?.activePayload && setDrillDownTrainer(event.activePayload[0]?.payload?.trainerId)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip formatter={(value) => [`${value}%`, "Utilization"]} />
+                  <Bar dataKey="utilization" radius={[6, 6, 0, 0]} cursor="pointer">
+                    {chartData.map((entry, index) => (
+                      <Cell key={index} fill={getBarColor(entry.utilization)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </PremiumCardContent>
       </PremiumCard>
 
-      {/* Table */}
       <PremiumCard>
         <PremiumCardContent className="p-0">
           <Table>
@@ -104,51 +146,58 @@ export default function TrainerUtilizationPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {trainerUtilization.map((t) => {
-                const util = Math.round((t.billedHours / t.availableHours) * 100);
+              {trainerUtilization.map((trainer) => {
+                const utilization = trainer.availableHours ? Math.round((trainer.billedHours / trainer.availableHours) * 100) : 0;
                 return (
-                  <TableRow key={t.id} className="cursor-pointer hover:bg-muted/20" onClick={() => setDrillDownTrainer(t.trainerId)}>
-                    <TableCell className="font-medium">{t.trainerName}</TableCell>
-                    <TableCell className="text-center">{t.billedHours}</TableCell>
-                    <TableCell className="text-center">{t.availableHours}</TableCell>
-                    <TableCell className={cn("text-center font-bold", getStatusClass(util))}>{util}%</TableCell>
+                  <TableRow key={trainer.id} className="cursor-pointer hover:bg-muted/20" onClick={() => setDrillDownTrainer(trainer.trainerId)}>
+                    <TableCell className="font-medium">{trainer.trainerName}</TableCell>
+                    <TableCell className="text-center">{trainer.billedHours}</TableCell>
+                    <TableCell className="text-center">{trainer.availableHours}</TableCell>
+                    <TableCell className={cn("text-center font-bold", getStatusClass(utilization))}>{utilization}%</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className={cn("font-bold", getStatusClass(util))}>
-                        {util >= 80 ? "On Track" : util >= 60 ? "Warning" : "Below Target"}
+                      <Badge variant="outline" className={cn("font-bold", getStatusClass(utilization))}>
+                        {utilization >= 80 ? "On Track" : utilization >= 60 ? "Warning" : "Below Target"}
                       </Badge>
                     </TableCell>
                   </TableRow>
                 );
               })}
+              {!loading && !trainerUtilization.length ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">No utilization data available.</TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </PremiumCardContent>
       </PremiumCard>
 
-      {/* Drill-down */}
-      {drillDown && (
+      {drillDown ? (
         <PremiumCard>
           <PremiumCardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold">{drillDown.trainerName} — Daily Breakdown</h3>
+              <h3 className="text-sm font-bold">{drillDown.trainerName} - Daily Breakdown</h3>
               <button onClick={() => setDrillDownTrainer(null)} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
             </div>
             <div className="overflow-x-auto">
               <div className="flex gap-1 min-w-max">
-                {(drillDown.dailyBreakdown || []).map((day) => (
-                  <div key={day.date} className="flex flex-col items-center p-2 rounded-lg bg-muted/20 min-w-[50px]">
-                    <span className="text-[9px] text-muted-foreground">{day.date.slice(5)}</span>
-                    <div className="h-16 w-6 bg-muted/30 rounded relative mt-1">
-                      <div className={cn("absolute bottom-0 w-full rounded", day.billed / day.available >= 0.8 ? "bg-emerald-500" : day.billed / day.available >= 0.6 ? "bg-amber-500" : "bg-destructive")} style={{ height: `${(day.billed / day.available) * 100}%` }} />
+                {(drillDown.dailyBreakdown || []).map((day) => {
+                  const dayRatio = day.available ? day.billed / day.available : 0;
+                  return (
+                    <div key={day.date} className="flex flex-col items-center p-2 rounded-lg bg-muted/20 min-w-[50px]">
+                      <span className="text-[9px] text-muted-foreground">{day.date.slice(5)}</span>
+                      <div className="h-16 w-6 bg-muted/30 rounded relative mt-1">
+                        <div className={cn("absolute bottom-0 w-full rounded", dayRatio >= 0.8 ? "bg-emerald-500" : dayRatio >= 0.6 ? "bg-amber-500" : "bg-destructive")} style={{ height: `${dayRatio * 100}%` }} />
+                      </div>
+                      <span className="text-[10px] font-bold mt-1">{day.billed}h</span>
                     </div>
-                    <span className="text-[10px] font-bold mt-1">{day.billed}h</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </PremiumCardContent>
         </PremiumCard>
-      )}
+      ) : null}
     </div>
   );
 }

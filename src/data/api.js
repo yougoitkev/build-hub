@@ -396,6 +396,15 @@ export const createApiClient = () => ({
       }),
   },
 
+  supervisors: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Supervisor_List/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+  },
+
   students: {
     list: (query, options = {}) => request("/students", { query, ...options }),
     create: (payload, options = {}) => request("/students", { method: "POST", body: payload, ...options }),
@@ -658,6 +667,211 @@ export const createApiClient = () => ({
       request(buildBackendTmsUrl("/Options_Page/"), {
         method: "GET",
         query,
+        ...options,
+      }),
+  },
+
+  trainerAttendance: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Trainer_Attendance_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    create: (payload, options = {}) =>
+      request(buildBackendTmsUrl("/Trainer_Attendance_Page/"), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+    bulk: (payload, options = {}) =>
+      request(buildBackendTmsUrl("/Trainer_Attendance_Page/bulk/"), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+    export: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Trainer_Attendance_Page/export/"), {
+        method: "GET",
+        query,
+        responseType: "blob",
+        cache: false,
+        ...options,
+      }),
+  },
+
+  trainerObservations: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Trainer_Observations_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    create: (payload, options = {}) =>
+      request(buildBackendTmsUrl("/Trainer_Observations_Page/"), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+    summary: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Trainer_Observations_Page/summary/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+  },
+
+  trainerUtilization: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Trainer_Utilization_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+  },
+
+  orgChart: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Org_Chart_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+  },
+
+  skillsMatrix: {
+    meta: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Skills_Matrix_Page/meta/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Skills_Matrix_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    update: (payload, options = {}) =>
+      request(buildBackendTmsUrl("/Skills_Matrix_Page/"), {
+        method: "PUT",
+        body: payload,
+        ...options,
+      }),
+  },
+
+  availabilityPage: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Availability_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    create: (payload, options = {}) =>
+      request(buildBackendTmsUrl("/Availability_Page/"), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+    update: (id, payload, options = {}) =>
+      request(buildBackendTmsUrl(`/Availability_Page/${encodeURIComponent(id)}/`), {
+        method: "PATCH",
+        body: payload,
+        ...options,
+      }),
+    remove: (id, options = {}) =>
+      request(buildBackendTmsUrl(`/Availability_Page/${encodeURIComponent(id)}/`), {
+        method: "DELETE",
+        ...options,
+      }),
+  },
+
+  tasksPage: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Tasks_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    create: (payload, options = {}) =>
+      request(buildBackendTmsUrl("/Tasks_Page/"), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+    update: (id, payload, options = {}) =>
+      request(buildBackendTmsUrl(`/Tasks_Page/${encodeURIComponent(id)}/`), {
+        method: "PATCH",
+        body: payload,
+        ...options,
+      }),
+    remove: (id, options = {}) =>
+      request(buildBackendTmsUrl(`/Tasks_Page/${encodeURIComponent(id)}/`), {
+        method: "DELETE",
+        ...options,
+      }),
+    addComment: (id, payload, options = {}) =>
+      request(buildBackendTmsUrl(`/Tasks_Page/${encodeURIComponent(id)}/comments/`), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+  },
+
+  materialsPage: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Materials_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    create: (payload, options = {}) =>
+      request(buildBackendTmsUrl("/Materials_Page/"), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+    remove: (id, options = {}) =>
+      request(buildBackendTmsUrl(`/Materials_Page/${encodeURIComponent(id)}/`), {
+        method: "DELETE",
+        ...options,
+      }),
+    versions: (id, query, options = {}) =>
+      request(buildBackendTmsUrl(`/Materials_Page/${encodeURIComponent(id)}/versions/`), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    addVersion: (id, payload, options = {}) =>
+      request(buildBackendTmsUrl(`/Materials_Page/${encodeURIComponent(id)}/versions/`), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+  },
+
+  certificationsPage: {
+    list: (query, options = {}) =>
+      request(buildBackendTmsUrl("/Certifications_Page/"), {
+        method: "GET",
+        query,
+        ...options,
+      }),
+    create: (payload, options = {}) =>
+      request(buildBackendTmsUrl("/Certifications_Page/"), {
+        method: "POST",
+        body: payload,
+        ...options,
+      }),
+    update: (id, payload, options = {}) =>
+      request(buildBackendTmsUrl(`/Certifications_Page/${encodeURIComponent(id)}/`), {
+        method: "PATCH",
+        body: payload,
+        ...options,
+      }),
+    remove: (id, options = {}) =>
+      request(buildBackendTmsUrl(`/Certifications_Page/${encodeURIComponent(id)}/`), {
+        method: "DELETE",
         ...options,
       }),
   },
