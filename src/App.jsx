@@ -66,8 +66,14 @@ const App = () => (
                     <Route path="/org-chart" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><OrgChartPage /></RequireAuth>} />
                     <Route path="/feedback" element={<FeedbackPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
+                    <Route path="/skills-matrix" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><SkillsMatrixPage /></RequireAuth>} />
+                    <Route path="/availability" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><AvailabilityPage /></RequireAuth>} />
+                    <Route path="/tasks" element={<TasksPage />} />
+                    <Route path="/materials" element={<MaterialsPage />} />
+                    <Route path="/certifications" element={<CertificationsPage />} />
                     <Route path="/import" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><ImportManagementPage /></RequireAuth>} />
                     <Route path="/audit" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><AuditPage /></RequireAuth>} />
+                    <Route path="*" element={<NotFound />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AppShell>
