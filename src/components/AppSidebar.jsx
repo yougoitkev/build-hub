@@ -10,6 +10,11 @@ import {
   History,
   BarChart3,
   Network,
+  Grid3X3,
+  CalendarOff,
+  ListTodo,
+  FileText,
+  Award,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
