@@ -25,6 +25,11 @@ import AuditPage from "./pages/AuditPage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import CreateProgramPage from "./pages/CreateProgramPage";
+import SkillsMatrixPage from "./pages/SkillsMatrixPage";
+import AvailabilityPage from "./pages/AvailabilityPage";
+import TasksPage from "./pages/TasksPage";
+import MaterialsPage from "./pages/MaterialsPage";
+import CertificationsPage from "./pages/CertificationsPage";
 import { RequireAuth } from "./components/auth/RequireAuth";
 
 const queryClient = new QueryClient();
