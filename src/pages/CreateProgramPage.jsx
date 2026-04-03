@@ -68,6 +68,31 @@ const mapTemplateRecord = (template) => ({
   isActive: template.is_active ?? template.isActive ?? true,
 });
 
+const buildTemplateOption = (template) => ({
+  id: `template:${template.id}`,
+  title: template.name,
+  courseCode: template.code,
+  description: template.description,
+  defaultCapacity: template.defaultCapacity,
+  source: "template",
+  templateId: template.id,
+  status: template.isActive ? "Template" : "Inactive Template",
+});
+
+const dedupeByTitle = (items) => {
+  const seenTitles = new Set();
+
+  return items.filter((item) => {
+    const normalizedTitle = String(item?.title || "").toLowerCase().trim();
+    if (!normalizedTitle || seenTitles.has(normalizedTitle)) {
+      return false;
+    }
+
+    seenTitles.add(normalizedTitle);
+    return true;
+  });
+};
+
 const mapStudentRecord = (student) => ({
   id: normalizeId(student.id ?? student.emp_id ?? student.empId ?? student.portalid ?? student.portalId),
   portalId:
@@ -171,20 +196,7 @@ export default function CreateProgramPage() {
       }
 
       setTrainers(Array.isArray(trainersResult.value?.trainers) ? trainersResult.value.trainers.map(mapTrainerRecord) : []);
-      
-      // Strict Strategy: Use ONLY the 35 mock names as templates
-      const apiPrograms = Array.isArray(programsResult.value?.programs) ? programsResult.value.programs.map(mapProgramRecord) : [];
-      const storeTrainings = useAppStore.getState().trainings || [];
-      const mockPrograms = storeTrainings.map(mapProgramRecord);
-
-      // We only show mock programs (the 35 target names)
-      // If the backend already has one with the same title, we use its backend ID
-      const strictPrograms = mockPrograms.map(mp => {
-        const matchingApi = apiPrograms.find(ap => ap.title.toLowerCase().trim() === mp.title.toLowerCase().trim());
-        return matchingApi ? matchingApi : mp;
-      });
-
-      setTrainings(strictPrograms);
+      setTrainings(Array.isArray(programsResult.value?.programs) ? programsResult.value.programs.map(mapProgramRecord) : []);
       setTemplates(Array.isArray(templatesResult.value?.templates) ? templatesResult.value.templates.map(mapTemplateRecord) : []);
       setSystemHolidays(Array.isArray(holidaysResult.value?.holidays) ? holidaysResult.value.holidays : []);
       setAllStudents(Array.isArray(studentsResult.value?.students) ? studentsResult.value.students.map(mapStudentRecord) : []);
@@ -255,30 +267,27 @@ export default function CreateProgramPage() {
   const hours = ["01","02","03","04","05","06","07","08","09","10","11","12"];
   const minutes = ["00","15","30","45"];
 
-  // Programs for current trainer
-  const trainerPrograms = useMemo(() => {
-    if (!currentTrainer) return trainings;
-    return trainings.filter((training) =>
-      String(training.trainerId) === String(currentTrainer.id) ||
-      String(training.trainerPortalId || "").toLowerCase() === String(currentTrainer.portalId || "").toLowerCase()
-    );
-  }, [currentTrainer, trainings]);
-
   const selectablePrograms = useMemo(() => {
-    const trainerProgramIds = new Set(trainerPrograms.map((program) => String(program.id)));
+    const activeTemplateOptions = templates
+      .filter((template) => template.isActive !== false && String(template.name || "").trim())
+      .map(buildTemplateOption)
+      .sort((left, right) => String(left.title || "").localeCompare(String(right.title || "")));
 
-    return [...trainings]
-      .sort((left, right) => {
-        const leftOwned = trainerProgramIds.has(String(left.id)) ? 1 : 0;
-        const rightOwned = trainerProgramIds.has(String(right.id)) ? 1 : 0;
+    if (activeTemplateOptions.length > 0) {
+      return dedupeByTitle(activeTemplateOptions);
+    }
 
-        if (leftOwned !== rightOwned) {
-          return rightOwned - leftOwned;
-        }
-
-        return String(left.title || "").localeCompare(String(right.title || ""));
-      });
-  }, [trainerPrograms, trainings]);
+    return dedupeByTitle(
+      [...trainings]
+        .filter((training) => String(training.title || "").trim())
+        .sort((left, right) => String(left.title || "").localeCompare(String(right.title || "")))
+        .map((training) => ({
+          ...training,
+          source: "program",
+          status: training.status || "Program",
+        }))
+    );
+  }, [templates, trainings]);
 
   // Students filtered by active status only
   const filteredStudents = useMemo(() => {
@@ -376,28 +385,29 @@ export default function CreateProgramPage() {
       const scheduleStartTime = to24HourTime(startHour, startMinute, startPeriod);
       const scheduleEndTime = to24HourTime(endHour, endMinute, endPeriod);
 
-      // Auto-Sync: If programId is from mock list (starts with 'tr') and not in backend, create it
-      const isMockId = String(programId).startsWith('tr');
+      if (programId !== "new" && !selectedProgram) {
+        toast.error("Selected training name is no longer available. Please select again.");
+        return;
+      }
 
-      if (programId === "new" || (isMockId && selectedProgram)) {
+      if (programId === "new" || selectedProgram) {
         const payload = {
           title,
           trainer_portalid: currentTrainer.portalId,
           description: title || "Training Program",
           start_date: format(startDate, "yyyy-MM-dd"),
           end_date: format(endDate, "yyyy-MM-dd"),
-          capacity: selectedStudents.length || 20,
-          course_code: `TR-${Math.floor(1000 + Math.random() * 9000)}`, // Fix for "missing fields"
+          capacity: selectedStudents.length || selectedProgram?.defaultCapacity || 20,
+          course_code: selectedProgram?.courseCode || `TR-${Math.floor(1000 + Math.random() * 9000)}`,
         };
 
         const programResponse = await api.trainingPrograms.create(payload);
         const createdProgram = mapProgramRecord(programResponse?.program || {});
         trainingProgramId = createdProgram.id;
-        
-        // Update local state to reflect the new backend record
+
         setTrainings((current) => {
-          const filtered = current.filter(t => t.id !== programId); // remove mock if it existed
-          return [...filtered, createdProgram];
+          const filtered = current.filter((training) => String(training.id) !== String(trainingProgramId));
+          return createdProgram?.id ? [...filtered, createdProgram] : filtered;
         });
       }
 
@@ -578,7 +588,9 @@ export default function CreateProgramPage() {
                 <div className="p-4 bg-primary/5 rounded-xl border border-primary/20">
                   <p className="text-sm font-bold text-foreground">{programTitle}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Status: {selectablePrograms.find((p) => p.id === programId)?.status}
+                    {selectablePrograms.find((p) => p.id === programId)?.courseCode
+                      ? `Code: ${selectablePrograms.find((p) => p.id === programId)?.courseCode}`
+                      : `Source: ${selectablePrograms.find((p) => p.id === programId)?.status || "Template"}`}
                   </p>
                 </div>
               )}

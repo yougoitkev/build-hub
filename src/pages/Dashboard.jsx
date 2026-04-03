@@ -179,22 +179,16 @@ function SupervisorDashboard() {
     students: Number(dashboardSummary?.student_count || 0),
   };
 
-  const storeTrainings = useAppStore.getState().trainings || [];
-  const targetNames = storeTrainings.map(t => t.title.toLowerCase().trim());
-
   const upcomingTrainings = useMemo(() => {
-    const apiUpcoming = Array.isArray(dashboardSummary?.upcoming_trainings)
-      ? enrichTrainingRecords(dashboardSummary.upcoming_trainings.map(mapTrainingRecord), sessions)
+    const summaryUpcoming = Array.isArray(dashboardSummary?.upcoming_trainings)
+      ? dashboardSummary.upcoming_trainings.map(mapTrainingRecord)
       : [];
-    
-    const mockUpcoming = storeTrainings
-      .filter(t => t.status === "Upcoming" || t.status === "Ongoing")
-      .map(mapTrainingRecord);
 
-    // Filter by target names and merge
-    const combined = [...apiUpcoming, ...mockUpcoming.filter(mt => !apiUpcoming.some(at => at.title === mt.title))];
-    return combined.filter(t => targetNames.includes(t.title.toLowerCase().trim()));
-  }, [dashboardSummary?.upcoming_trainings, sessions, storeTrainings, targetNames]);
+    const apiUpcoming = summaryUpcoming.length > 0 ? summaryUpcoming : scheduledTrainings;
+    return enrichTrainingRecords(apiUpcoming, sessions).filter(
+      (training) => training.status === "Upcoming" || training.status === "Ongoing"
+    );
+  }, [dashboardSummary?.upcoming_trainings, scheduledTrainings, sessions]);
 
   return (
     <DashboardShell isLoadingData={isLoadingData} fetchError={fetchError}>
@@ -379,25 +373,12 @@ function TrainerDashboard() {
     [scheduledTrainings, trainerId]
   );
 
-  const storeTrainings = useAppStore.getState().trainings || [];
-  const targetNames = storeTrainings.map(t => t.title.toLowerCase().trim());
-
   const myTrainings = useMemo(() => {
     const summaryPrograms = Array.isArray(dashboardSummary?.my_trainings) ? dashboardSummary.my_trainings.map(mapTrainingRecord) : [];
-    
-    // Merge Strategy
-    const mockTrainings = storeTrainings
-      .filter(t => t.status === "Ongoing" || t.status === "Upcoming")
-      .map(mapTrainingRecord);
+    const apiPrograms = myScheduledTrainings.length > 0 ? myScheduledTrainings : summaryPrograms;
 
-    const basePrograms = [...myScheduledTrainings, ...mockTrainings.filter(mt => !myScheduledTrainings.some(at => at.title === mt.title))];
-    
-    // Fallback exactly as before if combined is empty
-    const finalBase = basePrograms.length > 0 ? basePrograms : summaryPrograms;
-
-    return enrichTrainingRecords(finalBase, sessions)
-      .filter(t => targetNames.includes(t.title.toLowerCase().trim()));
-  }, [dashboardSummary?.my_trainings, myScheduledTrainings, sessions, targetNames, storeTrainings]);
+    return enrichTrainingRecords(apiPrograms, sessions);
+  }, [dashboardSummary?.my_trainings, myScheduledTrainings, sessions]);
 
   const upcomingSessions = useMemo(() => {
     const today = startOfDay(new Date());

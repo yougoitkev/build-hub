@@ -24,6 +24,43 @@ const EMPTY_FORM = {
   supervisor: "",
 };
 
+const normalizeOptionValue = (value) => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  if (typeof value === "object") {
+    const candidate = value.value ?? value.label ?? value.name ?? "";
+    return typeof candidate === "string" ? candidate.trim() : String(candidate || "").trim();
+  }
+
+  return String(value).trim();
+};
+
+const normalizeOptionsList = (values = []) =>
+  [...new Set((Array.isArray(values) ? values : [values]).map(normalizeOptionValue).filter(Boolean))];
+
+const buildTrainerRequestPayload = (formValues, { includeStatus = false } = {}) => ({
+  portalid: formValues.portalId,
+  emailid: formValues.email,
+  first_name: formValues.firstName,
+  last_name: formValues.lastName,
+  role: formValues.role,
+  leader: formValues.leader,
+  region: formValues.region,
+  location: formValues.region,
+  supervisor: formValues.supervisor,
+  ...(includeStatus ? { status: "Active" } : {}),
+});
+
 export default function TrainerFormPage() {
   const addTrainer = useAppStore((s) => s.addTrainer);
   const updateTrainer = useAppStore((s) => s.updateTrainer);
@@ -75,11 +112,13 @@ export default function TrainerFormPage() {
         ]);
         const trainerList = Array.isArray(trainersResponse?.trainers) ? trainersResponse.trainers.map((t, i) => mapTrainerRecord(t, i)) : [];
         if (isMounted) {
+          const derivedRegions = trainerList.map((trainer) => trainer.region || trainer.location || "");
+          const derivedSupervisors = trainerList.map((trainer) => trainer.supervisor || "");
           setRemoteTrainers(trainerList);
           setProgramCount(Array.isArray(programsResponse?.programs) ? programsResponse.programs.length : 0);
           setOptions({
-            regions: Array.isArray(optionsResponse?.regions) ? optionsResponse.regions : [],
-            supervisors: Array.isArray(optionsResponse?.supervisors) ? optionsResponse.supervisors : [],
+            regions: normalizeOptionsList([...(optionsResponse?.regions || []), ...derivedRegions]),
+            supervisors: normalizeOptionsList([...(optionsResponse?.supervisors || []), ...derivedSupervisors]),
           });
           setIsLoadingData(false);
         }
@@ -161,7 +200,7 @@ export default function TrainerFormPage() {
     if (editingId) {
       try {
         setIsSaving(true);
-        const response = await api.trainers.update(editingId, trimmedForm);
+        const response = await api.trainers.update(editingId, buildTrainerRequestPayload(trimmedForm));
         const updatedTrainerRecord = response?.trainer || response?.data || response;
         const updatedTrainer = mapTrainerRecord({ ...updatedTrainerRecord, ...trimmedForm }, 0);
         updateTrainer(editingId, updatedTrainer);
@@ -177,15 +216,7 @@ export default function TrainerFormPage() {
       return;
     }
 
-    const payload = {
-      portalid: trimmedForm.portalId,
-      emailid: trimmedForm.email,
-      first_name: trimmedForm.firstName,
-      last_name: trimmedForm.lastName,
-      role: trimmedForm.role,
-      status: "Active",
-      leader: trimmedForm.leader,
-    };
+    const payload = buildTrainerRequestPayload(trimmedForm, { includeStatus: true });
 
     try {
       setIsSaving(true);
