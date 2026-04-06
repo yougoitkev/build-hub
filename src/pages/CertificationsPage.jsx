@@ -22,7 +22,7 @@ const statusConfig = {
   "Renewal Due": { color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300", icon: AlertTriangle },
 };
 
-const emptyCertification = { trainerId: "", name: "", type: "Technical", level: "Standard", issuedDate: "", expiryDate: "", issuedBy: "" };
+const emptyCertification = { trainerId: "", name: "", type: "Technical", level: "Standard", issuedDate: "", expiryDate: "", issuedBy: "", documentName: "" };
 
 const deriveStatus = (certification) => {
   if (certification.status) {
