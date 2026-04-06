@@ -94,6 +94,13 @@ export default function SkillsMatrixPage() {
     };
   }, []);
 
+  const [trainerFilter, setTrainerFilter] = useState("all");
+
+  const filteredTrainers = useMemo(() => {
+    if (trainerFilter === "all") return trainers;
+    return trainers.filter((trainer) => trainer.id === trainerFilter);
+  }, [trainers, trainerFilter]);
+
   const filteredSkills = useMemo(() => {
     return skillDefinitions.filter((skill) => {
       if (categoryFilter !== "all" && skill.categoryId !== categoryFilter) {
