@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Users, Activity, Target, Plus, Pencil, Trash2, LayoutGrid, List, Upload } from "lucide-react";
+import { Search, Users, Activity, Target, Plus, Pencil, Trash2, LayoutGrid, List } from "lucide-react";
 import { api } from "@/data/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

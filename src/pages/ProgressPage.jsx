@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAppStore } from "@/store/app-store";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { TrendingUp, Users, AlertTriangle, CheckCircle2, Award, Target, Milestone, UserSearch } from "lucide-react";
+import { TrendingUp, Users, AlertTriangle, CheckCircle2, Award, Target, Milestone, UserSearch, LocateFixed } from "lucide-react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export default function ProgressPage() {
   const students = useAppStore((s) => s.students);
@@ -11,6 +13,7 @@ export default function ProgressPage() {
   const observations = useAppStore((s) => s.observations);
   const attendance = useAppStore((s) => s.attendance);
   const [selectedStudent, setSelectedStudent] = useState("");
+  const timelineRef = useRef(null);
 
   const student = students.find((s) => s.id === selectedStudent);
   const studentProgress = progress.filter((p) => p.studentId === selectedStudent);
@@ -26,11 +29,22 @@ export default function ProgressPage() {
     l3Complete: students.filter((s) => s.level3 === "Complete").length,
   };
 
+  const handleScrollToCurrent = () => {
+    if (timelineRef.current) {
+      timelineRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold">Training Progress</h1>
-        <p className="text-muted-foreground">Track student level progression and milestones</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Training Progress</h1>
+          <p className="text-muted-foreground">Track student level progression and milestones</p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-2" onClick={handleScrollToCurrent}>
+          <LocateFixed className="h-4 w-4" /> Current
+        </Button>
       </div>
 
       {/* Dashboard cards */}
@@ -158,46 +172,49 @@ export default function ProgressPage() {
                 {student ? `Timeline — ${student.firstName} ${student.lastName}` : "Progress Timeline"}
               </PremiumCardTitle>
             </PremiumCardHeader>
-            <PremiumCardContent className="p-6 md:p-8">
+            <PremiumCardContent className="p-0">
               {!selectedStudent ? (
-                <div className="text-center py-16 text-muted-foreground">
+                <div className="text-center py-16 text-muted-foreground p-6">
                   <Target className="h-16 w-16 mx-auto mb-4 opacity-10 text-primary" />
                   <p className="text-xl font-bold text-foreground mb-2">No Learner Selected</p>
                   <p className="text-sm">Select a student from the lookup to view their detailed progression timeline and milestones.</p>
                 </div>
               ) : studentProgress.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">
+                <div className="text-center py-16 text-muted-foreground p-6">
                   <Milestone className="h-12 w-12 mx-auto mb-4 opacity-20" />
                   <p className="font-semibold text-foreground">No milestone entries found</p>
                 </div>
               ) : (
-                <div className="relative pl-2 md:pl-4">
-                  {/* Vertical line */}
-                  <div className="absolute left-[15px] md:left-[23px] top-4 bottom-4 w-[2px] bg-border/80" />
+                <ScrollArea className="h-[500px]" ref={timelineRef}>
+                  <div className="relative pl-2 md:pl-4 p-6 md:p-8">
+                    {/* Vertical line */}
+                    <div className="absolute left-[15px] md:left-[23px] top-4 bottom-4 w-[2px] bg-border/80" />
 
-                  <div className="space-y-8">
-                    {studentProgress.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((entry, idx) => (
-                      <div key={entry.id} className="relative pl-10 md:pl-14 transition-all duration-300 hover:translate-x-1">
-                        {/* Timeline dot */}
-                        <div className={`absolute left-0 top-1.5 h-8 w-8 rounded-full border-[3px] flex items-center justify-center bg-card
-                                ${idx === 0 ? 'border-primary text-primary' : 'border-border/80 text-muted-foreground'}`}>
-                          <div className={`h-2.5 w-2.5 rounded-full ${idx === 0 ? 'bg-primary' : 'bg-transparent'}`} />
-                        </div>
-
-                        <div className={`p-5 rounded-2xl border transition-shadow ${idx === 0 ? 'border-primary/30 bg-primary/5 shadow-sm' : 'border-border/50 bg-card hover:border-primary/20 hover:shadow-sm'}`}>
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                            <div className="flex items-center gap-3">
-                              <h4 className="font-bold text-base text-foreground">{entry.level}</h4>
-                              <StatusBadge status={entry.status} />
-                            </div>
-                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider bg-background px-2.5 py-1 rounded-md border border-border/50">{entry.date}</span>
+                    <div className="space-y-8">
+                      {studentProgress.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((entry, idx) => (
+                        <div key={entry.id} className="relative pl-10 md:pl-14 transition-all duration-300 hover:translate-x-1">
+                          {/* Timeline dot */}
+                          <div className={`absolute left-0 top-1.5 h-8 w-8 rounded-full border-[3px] flex items-center justify-center bg-card
+                                  ${idx === 0 ? 'border-primary text-primary' : 'border-border/80 text-muted-foreground'}`}>
+                            <div className={`h-2.5 w-2.5 rounded-full ${idx === 0 ? 'bg-primary' : 'bg-transparent'}`} />
                           </div>
-                          <p className="text-sm text-foreground/80 leading-relaxed">{entry.notes}</p>
+
+                          <div className={`p-5 rounded-2xl border transition-shadow ${idx === 0 ? 'border-primary/30 bg-primary/5 shadow-sm' : 'border-border/50 bg-card hover:border-primary/20 hover:shadow-sm'}`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                              <div className="flex items-center gap-3">
+                                <h4 className="font-bold text-base text-foreground">{entry.level}</h4>
+                                <StatusBadge status={entry.status} />
+                              </div>
+                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider bg-background px-2.5 py-1 rounded-md border border-border/50">{entry.date}</span>
+                            </div>
+                            <p className="text-sm text-foreground/80 leading-relaxed">{entry.notes}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
               )}
             </PremiumCardContent>
           </PremiumCard>

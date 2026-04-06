@@ -516,7 +516,8 @@ export default function AttendancePage() {
                     </PremiumCardTitle>
                   </PremiumCardHeader>
                   <PremiumCardContent className="pt-4 px-3">
-                    <div className="space-y-2">
+                    <ScrollArea className="max-h-[280px]">
+                      <div className="space-y-2">
                       {trainings.map((training) => {
                         const count = getEnrolledCount(training.id);
                         const isOver = count > training.capacity;
@@ -544,7 +545,9 @@ export default function AttendancePage() {
                           </div>
                         );
                       })}
-                    </div>
+                      </div>
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
                   </PremiumCardContent>
                 </PremiumCard>
               </div>
