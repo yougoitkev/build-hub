@@ -216,7 +216,7 @@ function SupervisorDashboard() {
             { label: "Upcoming Sessions", value: supervisorStats.sessions, icon: CalendarDays, color: "text-amber-600 bg-amber-100", link: "/calendar" },
             { label: "Total Students", value: supervisorStats.students, icon: Users, color: "text-purple-600 bg-purple-100", link: "/students" },
           ].map(({ label, value, icon: Icon, color, link, emptyMsg }) => (
-            <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(link)}>
+            <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => { if (emptyMsg && value === 0) { toast.info(emptyMsg); return; } navigate(link); }}>
               <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${color}`}>
                 <Icon className="h-5 w-5" />
               </div>
