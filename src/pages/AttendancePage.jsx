@@ -6,6 +6,7 @@ import { AttendanceMatrix } from "@/components/attendance/AttendanceMatrix";
 import { BulkActionsToolbar } from "@/components/attendance/BulkActionsToolbar";
 import { OverrideModal } from "@/components/attendance/OverrideModal";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { History, Shield, Info, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
