@@ -453,12 +453,30 @@ export default function TrainersPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Supervisor</Label>
-              <Select value={form.supervisor} onValueChange={(value) => setField("supervisor", value)}>
-                <SelectTrigger><SelectValue placeholder="Select supervisor" /></SelectTrigger>
-                <SelectContent>
-                  {availableSupervisors.map((supervisor) => <SelectItem key={supervisor} value={supervisor}>{supervisor}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  value={form.supervisor}
+                  onChange={(event) => setField("supervisor", event.target.value)}
+                  placeholder="Type to search supervisors..."
+                />
+                {form.supervisor && availableSupervisors.filter((s) => s.toLowerCase().includes(form.supervisor.toLowerCase()) && s !== form.supervisor).length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-[160px] overflow-y-auto">
+                    {availableSupervisors
+                      .filter((s) => s.toLowerCase().includes(form.supervisor.toLowerCase()))
+                      .slice(0, 8)
+                      .map((supervisor) => (
+                        <button
+                          key={supervisor}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                          onClick={() => setField("supervisor", supervisor)}
+                        >
+                          {supervisor}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Location</Label>
