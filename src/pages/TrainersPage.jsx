@@ -290,6 +290,8 @@ export default function TrainersPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button onClick={openAdd} className="rounded-full gap-2"><Plus className="h-4 w-4" /> Add Trainer</Button>
+          <Button variant="outline" onClick={() => setShowSupervisorDialog(true)} className="rounded-full gap-2"><Shield className="h-4 w-4" /> Add Supervisor</Button>
+          <Button variant="outline" onClick={() => setShowLeaveDialog(true)} className="rounded-full gap-2"><CalendarOff className="h-4 w-4" /> Add Leave</Button>
         </div>
       </div>
 
