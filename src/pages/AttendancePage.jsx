@@ -6,6 +6,7 @@ import { AttendanceMatrix } from "@/components/attendance/AttendanceMatrix";
 import { BulkActionsToolbar } from "@/components/attendance/BulkActionsToolbar";
 import { OverrideModal } from "@/components/attendance/OverrideModal";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { History, Shield, Info, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -516,7 +517,8 @@ export default function AttendancePage() {
                     </PremiumCardTitle>
                   </PremiumCardHeader>
                   <PremiumCardContent className="pt-4 px-3">
-                    <div className="space-y-2">
+                    <ScrollArea className="max-h-[280px]">
+                      <div className="space-y-2">
                       {trainings.map((training) => {
                         const count = getEnrolledCount(training.id);
                         const isOver = count > training.capacity;
@@ -544,7 +546,9 @@ export default function AttendancePage() {
                           </div>
                         );
                       })}
-                    </div>
+                      </div>
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
                   </PremiumCardContent>
                 </PremiumCard>
               </div>

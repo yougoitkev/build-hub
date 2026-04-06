@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAppStore } from "@/store/app-store";
 import { certificationTypes } from "@/lib/phase3-mock-data";
-import { Award, Search, Plus, AlertTriangle, CheckCircle, XCircle, Clock, Shield } from "lucide-react";
+import { Award, Search, Plus, AlertTriangle, CheckCircle, XCircle, Clock, Shield, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
@@ -22,7 +22,7 @@ const statusConfig = {
   "Renewal Due": { color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300", icon: AlertTriangle },
 };
 
-const emptyCertification = { trainerId: "", name: "", type: "Technical", level: "Standard", issuedDate: "", expiryDate: "", issuedBy: "" };
+const emptyCertification = { trainerId: "", name: "", type: "Technical", level: "Standard", issuedDate: "", expiryDate: "", issuedBy: "", documentName: "" };
 
 const deriveStatus = (certification) => {
   if (certification.status) {
@@ -226,7 +226,12 @@ export default function CertificationsPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Award className="h-4 w-4 text-primary" />
-                          <span className="font-medium text-sm">{certification.name}</span>
+                          <div>
+                            <span className="font-medium text-sm">{certification.name}</span>
+                            {certification.documentName && (
+                              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Upload className="h-2.5 w-2.5" />{certification.documentName}</p>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">{trainers.find((trainer) => trainer.id === certification.trainerId)?.name}</TableCell>
@@ -289,6 +294,21 @@ export default function CertificationsPage() {
               <div><Label>Expiry Date</Label><Input type="date" value={newCert.expiryDate} onChange={(event) => setNewCert({ ...newCert, expiryDate: event.target.value })} /></div>
             </div>
             <div><Label>Issued By</Label><Input value={newCert.issuedBy} onChange={(event) => setNewCert({ ...newCert, issuedBy: event.target.value })} /></div>
+            <div>
+              <Label>Upload Certificate Document</Label>
+              <Input
+                type="file"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    setNewCert({ ...newCert, documentName: file.name });
+                  }
+                }}
+                className="cursor-pointer"
+              />
+              {newCert.documentName && <p className="text-xs text-muted-foreground mt-1">Selected: {newCert.documentName}</p>}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>

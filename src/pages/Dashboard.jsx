@@ -212,11 +212,11 @@ function SupervisorDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Total Trainers", value: supervisorStats.trainers, icon: Users, color: "text-primary bg-primary/10", link: "/trainer-form" },
-            { label: "Active Programs", value: supervisorStats.programs, icon: Activity, color: "text-emerald-600 bg-emerald-100", link: "/performance" },
+            { label: "Active Programs", value: supervisorStats.programs, icon: Activity, color: "text-emerald-600 bg-emerald-100", link: "/progress", emptyMsg: "No active programs available" },
             { label: "Upcoming Sessions", value: supervisorStats.sessions, icon: CalendarDays, color: "text-amber-600 bg-amber-100", link: "/calendar" },
             { label: "Total Students", value: supervisorStats.students, icon: Users, color: "text-purple-600 bg-purple-100", link: "/students" },
-          ].map(({ label, value, icon: Icon, color, link }) => (
-            <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(link)}>
+          ].map(({ label, value, icon: Icon, color, link, emptyMsg }) => (
+            <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => { if (emptyMsg && value === 0) { toast.info(emptyMsg); return; } navigate(link); }}>
               <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${color}`}>
                 <Icon className="h-5 w-5" />
               </div>
@@ -292,6 +292,41 @@ function SupervisorDashboard() {
             </PremiumCard>
           </div>
         </div>
+
+        {/* Recent Activity */}
+        <PremiumCard className="glass-card">
+          <PremiumCardHeader className="pb-2">
+            <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Activity className="h-4 w-4" /> Recent Activity
+            </PremiumCardTitle>
+          </PremiumCardHeader>
+          <PremiumCardContent>
+            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+              {[
+                { action: "Trainer Added", user: "Admin", time: "2 hours ago", entity: "Sarah Wilson" },
+                { action: "Leave Request Submitted", user: "John Doe", time: "3 hours ago", entity: "Apr 10-12, 2026" },
+                { action: "Program Created", user: "Supervisor", time: "5 hours ago", entity: "Advanced React Training" },
+                { action: "Attendance Submitted", user: "Jane Smith", time: "6 hours ago", entity: "Day 15 - Cohort A" },
+                { action: "Observation Updated", user: "Mike Chen", time: "1 day ago", entity: "Student Performance Review" },
+                { action: "Material Uploaded", user: "Admin", time: "1 day ago", entity: "Training Manual v2.0" },
+                { action: "Certification Added", user: "HR System", time: "2 days ago", entity: "AWS Certification - Tom Lee" },
+                { action: "Leave Approved", user: "Supervisor", time: "2 days ago", entity: "John Doe - Apr 10-12" },
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/10 hover:bg-muted/20 transition-colors">
+                  <div className="h-2 w-2 rounded-full bg-primary/50 mt-2 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{item.action}</p>
+                    <p className="text-xs text-muted-foreground">{item.entity}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[10px] text-muted-foreground">{item.user}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </PremiumCardContent>
+        </PremiumCard>
       </div>
     </DashboardShell>
   );
