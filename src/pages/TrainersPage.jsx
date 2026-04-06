@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -7,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Users, Activity, Target, Plus, Pencil, Trash2, LayoutGrid, List } from "lucide-react";
+import { Search, Users, Activity, Target, Plus, Pencil, Trash2, LayoutGrid, List, CalendarOff, Shield } from "lucide-react";
 import { api } from "@/data/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { leaveTypes } from "@/lib/phase3-mock-data";
 
 const EMPTY_FORM = {
   firstName: "",
