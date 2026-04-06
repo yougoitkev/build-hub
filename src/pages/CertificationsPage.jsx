@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAppStore } from "@/store/app-store";
 import { certificationTypes } from "@/lib/phase3-mock-data";
-import { Award, Search, Plus, AlertTriangle, CheckCircle, XCircle, Clock, Shield } from "lucide-react";
+import { Award, Search, Plus, AlertTriangle, CheckCircle, XCircle, Clock, Shield, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
