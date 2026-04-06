@@ -267,7 +267,7 @@ export default function SkillsMatrixPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {trainers.map((trainer) => (
+                    {filteredTrainers.map((trainer) => (
                       <TableRow key={trainer.id}>
                         <TableCell className="sticky left-0 bg-card z-10 font-medium">{trainer.name}</TableCell>
                         {filteredSkills.map((skill) => {

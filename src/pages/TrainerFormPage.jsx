@@ -446,14 +446,31 @@ export default function TrainerFormPage() {
               </div>
               <div className="space-y-2">
                 <Label>Supervisor</Label>
-                <Select value={form.supervisor} onValueChange={(v) => setForm({ ...form, supervisor: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select supervisor" /></SelectTrigger>
-                  <SelectContent>
-                    {options.supervisors.map((supervisor) => (
-                      <SelectItem key={supervisor} value={supervisor}>{supervisor}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Input
+                    value={form.supervisor}
+                    onChange={(e) => setForm({ ...form, supervisor: e.target.value })}
+                    placeholder="Type to search supervisors..."
+                    className="pr-2"
+                  />
+                  {form.supervisor && options.supervisors.filter((s) => s.toLowerCase().includes(form.supervisor.toLowerCase()) && s !== form.supervisor).length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-[160px] overflow-y-auto">
+                      {options.supervisors
+                        .filter((s) => s.toLowerCase().includes(form.supervisor.toLowerCase()))
+                        .slice(0, 8)
+                        .map((supervisor) => (
+                          <button
+                            key={supervisor}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                            onClick={() => setForm({ ...form, supervisor })}
+                          >
+                            {supervisor}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
