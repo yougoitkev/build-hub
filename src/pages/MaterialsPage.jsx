@@ -292,7 +292,21 @@ export default function MaterialsPage() {
           <DialogHeader><DialogTitle>Upload Training Material</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label>Title</Label><Input value={newMaterial.title} onChange={(event) => setNewMaterial({ ...newMaterial, title: event.target.value })} /></div>
-            <div><Label>File Name</Label><Input value={newMaterial.fileName} onChange={(event) => setNewMaterial({ ...newMaterial, fileName: event.target.value })} placeholder="e.g., guide.pdf" /></div>
+            <div>
+              <Label>Upload Document</Label>
+              <Input
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.mp4,.avi"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    setNewMaterial({ ...newMaterial, fileName: file.name, title: newMaterial.title || file.name.replace(/\.[^.]+$/, '') });
+                  }
+                }}
+                className="cursor-pointer"
+              />
+              {newMaterial.fileName && <p className="text-xs text-muted-foreground mt-1">Selected: {newMaterial.fileName}</p>}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Type</Label>
