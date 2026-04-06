@@ -292,6 +292,41 @@ function SupervisorDashboard() {
             </PremiumCard>
           </div>
         </div>
+
+        {/* Recent Activity */}
+        <PremiumCard className="glass-card">
+          <PremiumCardHeader className="pb-2">
+            <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Activity className="h-4 w-4" /> Recent Activity
+            </PremiumCardTitle>
+          </PremiumCardHeader>
+          <PremiumCardContent>
+            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+              {[
+                { action: "Trainer Added", user: "Admin", time: "2 hours ago", entity: "Sarah Wilson" },
+                { action: "Leave Request Submitted", user: "John Doe", time: "3 hours ago", entity: "Apr 10-12, 2026" },
+                { action: "Program Created", user: "Supervisor", time: "5 hours ago", entity: "Advanced React Training" },
+                { action: "Attendance Submitted", user: "Jane Smith", time: "6 hours ago", entity: "Day 15 - Cohort A" },
+                { action: "Observation Updated", user: "Mike Chen", time: "1 day ago", entity: "Student Performance Review" },
+                { action: "Material Uploaded", user: "Admin", time: "1 day ago", entity: "Training Manual v2.0" },
+                { action: "Certification Added", user: "HR System", time: "2 days ago", entity: "AWS Certification - Tom Lee" },
+                { action: "Leave Approved", user: "Supervisor", time: "2 days ago", entity: "John Doe - Apr 10-12" },
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/10 hover:bg-muted/20 transition-colors">
+                  <div className="h-2 w-2 rounded-full bg-primary/50 mt-2 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{item.action}</p>
+                    <p className="text-xs text-muted-foreground">{item.entity}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[10px] text-muted-foreground">{item.user}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </PremiumCardContent>
+        </PremiumCard>
       </div>
     </DashboardShell>
   );
