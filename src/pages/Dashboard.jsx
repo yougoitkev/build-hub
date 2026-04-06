@@ -212,10 +212,10 @@ function SupervisorDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Total Trainers", value: supervisorStats.trainers, icon: Users, color: "text-primary bg-primary/10", link: "/trainer-form" },
-            { label: "Active Programs", value: supervisorStats.programs, icon: Activity, color: "text-emerald-600 bg-emerald-100", link: "/performance" },
+            { label: "Active Programs", value: supervisorStats.programs, icon: Activity, color: "text-emerald-600 bg-emerald-100", link: "/progress", emptyMsg: "No active programs available" },
             { label: "Upcoming Sessions", value: supervisorStats.sessions, icon: CalendarDays, color: "text-amber-600 bg-amber-100", link: "/calendar" },
             { label: "Total Students", value: supervisorStats.students, icon: Users, color: "text-purple-600 bg-purple-100", link: "/students" },
-          ].map(({ label, value, icon: Icon, color, link }) => (
+          ].map(({ label, value, icon: Icon, color, link, emptyMsg }) => (
             <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(link)}>
               <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${color}`}>
                 <Icon className="h-5 w-5" />
