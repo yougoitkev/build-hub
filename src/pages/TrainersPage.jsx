@@ -282,7 +282,6 @@ export default function TrainersPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button onClick={openAdd} className="rounded-full gap-2"><Plus className="h-4 w-4" /> Add Trainer</Button>
-          <Button variant="outline" disabled className="rounded-full gap-2 opacity-50"><Upload className="h-4 w-4" /> Bulk Import <Badge variant="secondary" className="ml-1 text-[9px]">Coming Soon</Badge></Button>
         </div>
       </div>
 
