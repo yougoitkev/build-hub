@@ -99,6 +99,7 @@ const buildTrainerPayload = (formValues, { includeStatus = true } = {}) => ({
 });
 
 export default function TrainersPage() {
+  const navigate = useNavigate();
   const [trainers, setTrainers] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [search, setSearch] = useState("");
@@ -116,6 +117,10 @@ export default function TrainersPage() {
   const [availableStatuses, setAvailableStatuses] = useState(FALLBACK_TRAINER_STATUSES);
   const [availableTypes, setAvailableTypes] = useState(FALLBACK_TRAINER_TYPES);
   const [availableLanguages, setAvailableLanguages] = useState(FALLBACK_LANGUAGES);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({ trainerId: "", type: "Annual Leave", startDate: "", endDate: "", notes: "" });
+  const [showSupervisorDialog, setShowSupervisorDialog] = useState(false);
+  const [supervisorForm, setSupervisorForm] = useState({ name: "", email: "", portalId: "" });
 
   const loadData = async () => {
     setIsLoadingData(true);
