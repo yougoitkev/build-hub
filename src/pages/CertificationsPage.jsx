@@ -226,7 +226,12 @@ export default function CertificationsPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Award className="h-4 w-4 text-primary" />
-                          <span className="font-medium text-sm">{certification.name}</span>
+                          <div>
+                            <span className="font-medium text-sm">{certification.name}</span>
+                            {certification.documentName && (
+                              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Upload className="h-2.5 w-2.5" />{certification.documentName}</p>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">{trainers.find((trainer) => trainer.id === certification.trainerId)?.name}</TableCell>
