@@ -227,6 +227,13 @@ export default function SkillsMatrixPage() {
             {skillCategories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={trainerFilter} onValueChange={setTrainerFilter}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Trainers" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Trainers</SelectItem>
+            {trainers.map((trainer) => <SelectItem key={trainer.id} value={trainer.id}>{trainer.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={selectedTrainer || ""} onValueChange={(value) => setSelectedTrainer(value || null)}>
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="Radar: Select Trainer" /></SelectTrigger>
           <SelectContent>
