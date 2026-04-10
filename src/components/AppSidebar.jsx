@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -11,10 +12,13 @@ import {
   BarChart3,
   Network,
   Grid3X3,
-  CalendarOff,
   ListTodo,
   FileText,
   Award,
+  ChevronDown,
+  GraduationCap,
+  Settings,
+  Briefcase,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -38,35 +42,84 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
-const getSupervisorNav = () => [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Trainer Form", url: "/trainer-form", icon: UserCog },
-  { title: "Calendar", url: "/calendar", icon: CalendarDays },
-  { title: "Students", url: "/students", icon: Users },
-  { title: "Trainers", url: "/trainers", icon: Users },
-  { title: "Skills Matrix", url: "/skills-matrix", icon: Grid3X3 },
-  { title: "Tasks", url: "/tasks", icon: ListTodo },
-  { title: "Materials", url: "/materials", icon: FileText },
-  { title: "Certifications", url: "/certifications", icon: Award },
-  { title: "Progress", url: "/progress", icon: Activity },
-  { title: "Trainer Attendance & Leave", url: "/trainer-attendance", icon: ClipboardCheck },
-  { title: "Trainer Observations", url: "/trainer-observations", icon: Eye },
-  { title: "Trainer Utilization", url: "/trainer-utilization", icon: BarChart3 },
-  { title: "Org Chart", url: "/org-chart", icon: Network },
-  { title: "Audit Trail", url: "/audit", icon: History },
+// Supervisor: 4 groups
+const getSupervisorGroups = () => [
+  {
+    label: "Overview",
+    icon: LayoutDashboard,
+    items: [
+      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "Calendar", url: "/calendar", icon: CalendarDays },
+      { title: "Org Chart", url: "/org-chart", icon: Network },
+    ],
+  },
+  {
+    label: "Training",
+    icon: GraduationCap,
+    items: [
+      { title: "Trainer Form", url: "/trainer-form", icon: UserCog },
+      { title: "Students", url: "/students", icon: Users },
+      { title: "Trainers", url: "/trainers", icon: Users },
+      { title: "Skills Matrix", url: "/skills-matrix", icon: Grid3X3 },
+    ],
+  },
+  {
+    label: "Operations",
+    icon: Briefcase,
+    items: [
+      { title: "Attendance & Leave", url: "/trainer-attendance", icon: ClipboardCheck },
+      { title: "Observations", url: "/trainer-observations", icon: Eye },
+      { title: "Utilization", url: "/trainer-utilization", icon: BarChart3 },
+      { title: "Progress", url: "/progress", icon: Activity },
+    ],
+  },
+  {
+    label: "Resources",
+    icon: Settings,
+    items: [
+      { title: "Tasks", url: "/tasks", icon: ListTodo },
+      { title: "Materials", url: "/materials", icon: FileText },
+      { title: "Certifications", url: "/certifications", icon: Award },
+      { title: "Audit Trail", url: "/audit", icon: History },
+    ],
+  },
 ];
 
-const getTrainerNav = () => [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Students", url: "/students", icon: Users },
-  { title: "Calendar", url: "/calendar", icon: CalendarDays },
-  { title: "Tasks", url: "/tasks", icon: ListTodo },
-  { title: "Materials", url: "/materials", icon: FileText },
-  { title: "Certifications", url: "/certifications", icon: Award },
-  { title: "Progress", url: "/progress", icon: Activity },
-  { title: "Attendance", url: "/attendance", icon: ClipboardCheck },
-  { title: "Observations", url: "/observations", icon: Eye },
+// Trainer: 3 groups
+const getTrainerGroups = () => [
+  {
+    label: "Overview",
+    icon: LayoutDashboard,
+    items: [
+      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "Calendar", url: "/calendar", icon: CalendarDays },
+      { title: "Students", url: "/students", icon: Users },
+    ],
+  },
+  {
+    label: "My Work",
+    icon: Briefcase,
+    items: [
+      { title: "Attendance", url: "/attendance", icon: ClipboardCheck },
+      { title: "Observations", url: "/observations", icon: Eye },
+      { title: "Progress", url: "/progress", icon: Activity },
+    ],
+  },
+  {
+    label: "Resources",
+    icon: Settings,
+    items: [
+      { title: "Tasks", url: "/tasks", icon: ListTodo },
+      { title: "Materials", url: "/materials", icon: FileText },
+      { title: "Certifications", url: "/certifications", icon: Award },
+    ],
+  },
 ];
 
 export function AppSidebar({ className }) {
@@ -84,7 +137,10 @@ export function AppSidebar({ className }) {
   };
 
   const isSupervisor = user?.role === 'supervisor' || user?.role === 'admin';
-  const mainNav = isSupervisor ? getSupervisorNav() : getTrainerNav();
+  const groups = isSupervisor ? getSupervisorGroups() : getTrainerGroups();
+
+  // Determine which group should be open based on current route
+  const activeGroupIndex = groups.findIndex(g => g.items.some(i => isActive(i.url)));
 
   return (
     <Sidebar
@@ -109,33 +165,69 @@ export function AppSidebar({ className }) {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-2 gap-4">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-2 px-2">
-            {isSupervisor ? "Supervisor" : "Trainer"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {mainNav.map((item) => {
-                const isNavActive = isActive(item.url);
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isNavActive} tooltip={item.title} className="h-10">
-                      <NavLink to={item.url} className={cn("flex items-center gap-3 w-full p-2 rounded-lg transition-all duration-200", isNavActive ? "bg-primary/10 text-primary font-bold shadow-sm ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted font-medium hover:text-foreground")}>
-                        <item.icon className={cn("h-4 w-4 shrink-0 transition-transform duration-200", isNavActive ? "scale-110" : "")} />
-                        {!collapsed && <span className="truncate">{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="p-2 gap-1">
+        {groups.map((group, gIdx) => {
+          const groupHasActive = group.items.some(i => isActive(i.url));
 
-        {/* Notifications section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-2 px-2">
+          return collapsed ? (
+            // When collapsed, show only icons
+            <SidebarGroup key={group.label}>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-0.5">
+                  {group.items.map((item) => {
+                    const isNavActive = isActive(item.url);
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild isActive={isNavActive} tooltip={item.title} className="h-9">
+                          <NavLink to={item.url} className={cn("flex items-center justify-center w-full p-2 rounded-lg transition-all duration-200", isNavActive ? "bg-primary/10 text-primary font-bold shadow-sm ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+                            <item.icon className={cn("h-4 w-4 shrink-0", isNavActive ? "scale-110" : "")} />
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ) : (
+            <Collapsible key={group.label} defaultOpen={groupHasActive || gIdx === 0}>
+              <SidebarGroup className="py-0">
+                <CollapsibleTrigger className="w-full">
+                  <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1 px-2 flex items-center justify-between cursor-pointer hover:text-muted-foreground transition-colors">
+                    <span className="flex items-center gap-2">
+                      <group.icon className="h-3.5 w-3.5" />
+                      {group.label}
+                    </span>
+                    <ChevronDown className="h-3 w-3 transition-transform duration-200 [&[data-state=open]]:rotate-180 group-data-[state=open]:rotate-180" />
+                  </SidebarGroupLabel>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="gap-0.5">
+                      {group.items.map((item) => {
+                        const isNavActive = isActive(item.url);
+                        return (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton asChild isActive={isNavActive} tooltip={item.title} className="h-9">
+                              <NavLink to={item.url} className={cn("flex items-center gap-3 w-full px-2 py-1.5 rounded-lg transition-all duration-200 text-sm", isNavActive ? "bg-primary/10 text-primary font-bold shadow-sm ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted font-medium hover:text-foreground")}>
+                                <item.icon className={cn("h-4 w-4 shrink-0 transition-transform duration-200", isNavActive ? "scale-110" : "")} />
+                                <span className="truncate">{item.title}</span>
+                              </NavLink>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })}
+
+        {/* Notifications */}
+        <SidebarGroup className="py-0 mt-2">
+          <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1 px-2">
             Alerts
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -147,7 +239,6 @@ export function AppSidebar({ className }) {
       </SidebarContent>
 
       <SidebarFooter className="mt-auto border-t border-border/50 p-2">
-        {/* User info & logout */}
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-secondary/30 transition-colors">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20 shrink-0">
             {user?.name?.split(" ").map((n) => n[0]).join("") || "U"}
@@ -164,8 +255,6 @@ export function AppSidebar({ className }) {
             </button>
           )}
         </div>
-
-        {/* Company logos */}
         <div className={cn("flex items-center gap-3 px-2 py-2", collapsed ? "flex-col" : "justify-center")}>
           <img src={mainLogo1} alt="NTT DATA" className={cn("object-contain", collapsed ? "h-5 w-auto" : "h-6 w-auto")} />
           <img src={mainLogo2} alt="Delivery Analytics" className={cn("object-contain", collapsed ? "h-5 w-auto" : "h-6 w-auto")} />
