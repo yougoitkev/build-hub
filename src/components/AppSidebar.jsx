@@ -15,10 +15,10 @@ import {
   ListTodo,
   FileText,
   Award,
-  ChevronDown,
+  ChevronRight,
   GraduationCap,
+  FolderOpen,
   Settings,
-  Briefcase,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -33,7 +33,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -42,37 +41,26 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
-// Supervisor: 4 groups
+// Supervisor: 4 top-level items
 const getSupervisorGroups = () => [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
   {
-    label: "Overview",
-    icon: LayoutDashboard,
-    items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard },
-      { title: "Calendar", url: "/calendar", icon: CalendarDays },
+    title: "People",
+    icon: Users,
+    children: [
+      { title: "Trainer Form", url: "/trainer-form", icon: UserCog },
+      { title: "Students", url: "/students", icon: Users },
+      { title: "Trainers", url: "/trainers", icon: Users },
       { title: "Org Chart", url: "/org-chart", icon: Network },
     ],
   },
   {
-    label: "Training",
+    title: "Programs",
     icon: GraduationCap,
-    items: [
-      { title: "Trainer Form", url: "/trainer-form", icon: UserCog },
-      { title: "Students", url: "/students", icon: Users },
-      { title: "Trainers", url: "/trainers", icon: Users },
+    children: [
+      { title: "Calendar", url: "/calendar", icon: CalendarDays },
       { title: "Skills Matrix", url: "/skills-matrix", icon: Grid3X3 },
-    ],
-  },
-  {
-    label: "Operations",
-    icon: Briefcase,
-    items: [
       { title: "Attendance & Leave", url: "/trainer-attendance", icon: ClipboardCheck },
       { title: "Observations", url: "/trainer-observations", icon: Eye },
       { title: "Utilization", url: "/trainer-utilization", icon: BarChart3 },
@@ -80,9 +68,9 @@ const getSupervisorGroups = () => [
     ],
   },
   {
-    label: "Resources",
-    icon: Settings,
-    items: [
+    title: "Resources",
+    icon: FolderOpen,
+    children: [
       { title: "Tasks", url: "/tasks", icon: ListTodo },
       { title: "Materials", url: "/materials", icon: FileText },
       { title: "Certifications", url: "/certifications", icon: Award },
@@ -91,36 +79,115 @@ const getSupervisorGroups = () => [
   },
 ];
 
-// Trainer: 3 groups
+// Trainer: 3 top-level items
 const getTrainerGroups = () => [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
   {
-    label: "Overview",
-    icon: LayoutDashboard,
-    items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+    title: "My Work",
+    icon: GraduationCap,
+    children: [
       { title: "Calendar", url: "/calendar", icon: CalendarDays },
       { title: "Students", url: "/students", icon: Users },
-    ],
-  },
-  {
-    label: "My Work",
-    icon: Briefcase,
-    items: [
       { title: "Attendance", url: "/attendance", icon: ClipboardCheck },
       { title: "Observations", url: "/observations", icon: Eye },
       { title: "Progress", url: "/progress", icon: Activity },
     ],
   },
   {
-    label: "Resources",
-    icon: Settings,
-    items: [
+    title: "Resources",
+    icon: FolderOpen,
+    children: [
       { title: "Tasks", url: "/tasks", icon: ListTodo },
       { title: "Materials", url: "/materials", icon: FileText },
       { title: "Certifications", url: "/certifications", icon: Award },
     ],
   },
 ];
+
+function SidebarNavItem({ item, collapsed, isActive, openGroup, setOpenGroup }) {
+  const hasChildren = !!item.children;
+  const isOpen = openGroup === item.title;
+  const childActive = hasChildren && item.children.some((c) => isActive(c.url));
+
+  if (!hasChildren) {
+    const active = isActive(item.url);
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild isActive={active} tooltip={item.title} className="h-10">
+          <NavLink
+            to={item.url}
+            className={cn(
+              "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-200 text-sm",
+              active
+                ? "bg-primary/10 text-primary font-semibold"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <item.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-primary")} />
+            {!collapsed && <span className="truncate">{item.title}</span>}
+          </NavLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  // Expandable group
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        tooltip={item.title}
+        className="h-10"
+        onClick={() => setOpenGroup(isOpen ? null : item.title)}
+      >
+        <div
+          className={cn(
+            "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-200 text-sm cursor-pointer select-none",
+            childActive
+              ? "text-primary font-semibold"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <item.icon className={cn("h-[18px] w-[18px] shrink-0", childActive && "text-primary")} />
+          {!collapsed && (
+            <>
+              <span className="truncate flex-1">{item.title}</span>
+              <ChevronRight
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform duration-200",
+                  isOpen && "rotate-90"
+                )}
+              />
+            </>
+          )}
+        </div>
+      </SidebarMenuButton>
+
+      {/* Children */}
+      {!collapsed && isOpen && (
+        <div className="ml-4 pl-3 border-l border-border/40 mt-0.5 mb-1 flex flex-col gap-0.5">
+          {item.children.map((child) => {
+            const active = isActive(child.url);
+            return (
+              <NavLink
+                key={child.title}
+                to={child.url}
+                className={cn(
+                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-all duration-150",
+                  active
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                )}
+              >
+                <child.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+                <span className="truncate">{child.title}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </SidebarMenuItem>
+  );
+}
 
 export function AppSidebar({ className }) {
   const { state } = useSidebar();
@@ -129,24 +196,28 @@ export function AppSidebar({ className }) {
   const navigate = useNavigate();
   const user = useAppStore((s) => s.user);
   const setUser = useAppStore((s) => s.setUser);
-  const handleLogout = () => { setUser(null); navigate('/Login'); };
+  const handleLogout = () => { setUser(null); navigate("/Login"); };
 
   const isActive = (url) => {
     if (url === "/") return location.pathname === "/";
     return location.pathname.startsWith(url);
   };
 
-  const isSupervisor = user?.role === 'supervisor' || user?.role === 'admin';
-  const groups = isSupervisor ? getSupervisorGroups() : getTrainerGroups();
+  const isSupervisor = user?.role === "supervisor" || user?.role === "admin";
+  const items = isSupervisor ? getSupervisorGroups() : getTrainerGroups();
 
-  // Determine which group should be open based on current route
-  const activeGroupIndex = groups.findIndex(g => g.items.some(i => isActive(i.url)));
+  // Auto-open the group that has the active child
+  const defaultOpen = items.find(
+    (i) => i.children && i.children.some((c) => isActive(c.url))
+  )?.title || null;
+
+  const [openGroup, setOpenGroup] = useState(defaultOpen);
 
   return (
     <Sidebar
       collapsible="icon"
       className={cn(
-        "border-r border-border/50 h-screen transition-all duration-300 ease-in-out shrink-0 glass-panel animate-slide-in z-40 bg-background/70 shadow-[2px_0_15px_-3px_rgba(0,0,0,0.05)]",
+        "border-r border-border/50 h-screen transition-all duration-300 ease-in-out shrink-0 bg-background/70 shadow-[2px_0_15px_-3px_rgba(0,0,0,0.05)] z-40",
         className
       )}
     >
@@ -155,7 +226,9 @@ export function AppSidebar({ className }) {
           <img src={tmsLogo} alt="TMS Logo" className={cn("object-contain shrink-0", collapsed ? "h-8 w-8" : "h-9 w-9")} />
           {!collapsed && (
             <>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-foreground leading-tight flex-1">Training<br />Management System</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-foreground leading-tight flex-1">
+                Training<br />Management System
+              </span>
               <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors shrink-0" />
             </>
           )}
@@ -165,71 +238,26 @@ export function AppSidebar({ className }) {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-2 gap-1">
-        {groups.map((group, gIdx) => {
-          const groupHasActive = group.items.some(i => isActive(i.url));
-
-          return collapsed ? (
-            // When collapsed, show only icons
-            <SidebarGroup key={group.label}>
-              <SidebarGroupContent>
-                <SidebarMenu className="gap-0.5">
-                  {group.items.map((item) => {
-                    const isNavActive = isActive(item.url);
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild isActive={isNavActive} tooltip={item.title} className="h-9">
-                          <NavLink to={item.url} className={cn("flex items-center justify-center w-full p-2 rounded-lg transition-all duration-200", isNavActive ? "bg-primary/10 text-primary font-bold shadow-sm ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
-                            <item.icon className={cn("h-4 w-4 shrink-0", isNavActive ? "scale-110" : "")} />
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ) : (
-            <Collapsible key={group.label} defaultOpen={groupHasActive || gIdx === 0}>
-              <SidebarGroup className="py-0">
-                <CollapsibleTrigger className="w-full">
-                  <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1 px-2 flex items-center justify-between cursor-pointer hover:text-muted-foreground transition-colors">
-                    <span className="flex items-center gap-2">
-                      <group.icon className="h-3.5 w-3.5" />
-                      {group.label}
-                    </span>
-                    <ChevronDown className="h-3 w-3 transition-transform duration-200 [&[data-state=open]]:rotate-180 group-data-[state=open]:rotate-180" />
-                  </SidebarGroupLabel>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <SidebarMenu className="gap-0.5">
-                      {group.items.map((item) => {
-                        const isNavActive = isActive(item.url);
-                        return (
-                          <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton asChild isActive={isNavActive} tooltip={item.title} className="h-9">
-                              <NavLink to={item.url} className={cn("flex items-center gap-3 w-full px-2 py-1.5 rounded-lg transition-all duration-200 text-sm", isNavActive ? "bg-primary/10 text-primary font-bold shadow-sm ring-1 ring-primary/20" : "text-muted-foreground hover:bg-muted font-medium hover:text-foreground")}>
-                                <item.icon className={cn("h-4 w-4 shrink-0 transition-transform duration-200", isNavActive ? "scale-110" : "")} />
-                                <span className="truncate">{item.title}</span>
-                              </NavLink>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        );
-                      })}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
-          );
-        })}
+      <SidebarContent className="p-2">
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-0.5">
+              {items.map((item) => (
+                <SidebarNavItem
+                  key={item.title}
+                  item={item}
+                  collapsed={collapsed}
+                  isActive={isActive}
+                  openGroup={openGroup}
+                  setOpenGroup={setOpenGroup}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         {/* Notifications */}
         <SidebarGroup className="py-0 mt-2">
-          <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1 px-2">
-            Alerts
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <div className={cn("px-2", collapsed && "flex justify-center")}>
               <NotificationPanel collapsed={collapsed} />
