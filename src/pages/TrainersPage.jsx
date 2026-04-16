@@ -10,11 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Users, Activity, Target, Plus, Pencil, Trash2, LayoutGrid, List, CalendarOff, Shield } from "lucide-react";
+import { Search, Users, Activity, Target, Plus, Pencil, Trash2, LayoutGrid, List } from "lucide-react";
 import { api } from "@/data/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { leaveTypes } from "@/lib/phase3-mock-data";
 
 const EMPTY_FORM = {
   firstName: "",
@@ -117,10 +116,6 @@ export default function TrainersPage() {
   const [availableStatuses, setAvailableStatuses] = useState(FALLBACK_TRAINER_STATUSES);
   const [availableTypes, setAvailableTypes] = useState(FALLBACK_TRAINER_TYPES);
   const [availableLanguages, setAvailableLanguages] = useState(FALLBACK_LANGUAGES);
-  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
-  const [leaveForm, setLeaveForm] = useState({ trainerId: "", type: "Annual Leave", startDate: "", endDate: "", notes: "" });
-  const [showSupervisorDialog, setShowSupervisorDialog] = useState(false);
-  const [supervisorForm, setSupervisorForm] = useState({ name: "", email: "", portalId: "" });
 
   const loadData = async () => {
     setIsLoadingData(true);
@@ -290,8 +285,6 @@ export default function TrainersPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button onClick={openAdd} className="rounded-full gap-2"><Plus className="h-4 w-4" /> Add Trainer</Button>
-          <Button variant="outline" onClick={() => setShowSupervisorDialog(true)} className="rounded-full gap-2"><Shield className="h-4 w-4" /> Add Supervisor</Button>
-          <Button variant="outline" onClick={() => setShowLeaveDialog(true)} className="rounded-full gap-2"><CalendarOff className="h-4 w-4" /> Add Leave</Button>
         </div>
       </div>
 
@@ -523,85 +516,6 @@ export default function TrainersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Leave Dialog */}
-      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Add Leave Request</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Trainer</Label>
-              <Select value={leaveForm.trainerId} onValueChange={(value) => setLeaveForm({ ...leaveForm, trainerId: value })}>
-                <SelectTrigger><SelectValue placeholder="Select trainer" /></SelectTrigger>
-                <SelectContent>{trainers.map((trainer) => <SelectItem key={trainer.id} value={trainer.id}>{trainer.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Leave Type</Label>
-              <Select value={leaveForm.type} onValueChange={(value) => setLeaveForm({ ...leaveForm, type: value })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{leaveTypes.map((lt) => <SelectItem key={lt} value={lt}>{lt}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Start Date</Label><Input type="date" value={leaveForm.startDate} onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })} /></div>
-              <div><Label>End Date</Label><Input type="date" value={leaveForm.endDate} onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })} /></div>
-            </div>
-            <div><Label>Notes</Label><Textarea value={leaveForm.notes} onChange={(e) => setLeaveForm({ ...leaveForm, notes: e.target.value })} placeholder="Optional notes..." /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLeaveDialog(false)}>Cancel</Button>
-            <Button disabled={isSaving} onClick={async () => {
-              if (!leaveForm.trainerId || !leaveForm.startDate || !leaveForm.endDate) { toast.error("Please fill all required fields"); return; }
-              setIsSaving(true);
-              try {
-                await api.availabilityPage.create({
-                  trainer_id: leaveForm.trainerId,
-                  type: leaveForm.type,
-                  start_date: leaveForm.startDate,
-                  end_date: leaveForm.endDate,
-                  notes: leaveForm.notes,
-                  status: "Pending",
-                });
-                setShowLeaveDialog(false);
-                setLeaveForm({ trainerId: "", type: "Annual Leave", startDate: "", endDate: "", notes: "" });
-                toast.success("Leave request submitted. Supervisor will review.");
-              } catch { toast.error("Failed to submit leave request"); }
-              finally { setIsSaving(false); }
-            }}>Submit Leave</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Supervisor Dialog */}
-      <Dialog open={showSupervisorDialog} onOpenChange={setShowSupervisorDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Add Supervisor</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><Label>Name *</Label><Input value={supervisorForm.name} onChange={(e) => setSupervisorForm({ ...supervisorForm, name: e.target.value })} placeholder="Full name" /></div>
-            <div><Label>Email</Label><Input value={supervisorForm.email} onChange={(e) => setSupervisorForm({ ...supervisorForm, email: e.target.value })} placeholder="supervisor@company.com" /></div>
-            <div><Label>Portal ID</Label><Input value={supervisorForm.portalId} onChange={(e) => setSupervisorForm({ ...supervisorForm, portalId: e.target.value })} placeholder="P-xxxx" /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSupervisorDialog(false)}>Cancel</Button>
-            <Button disabled={isSaving} onClick={async () => {
-              if (!supervisorForm.name.trim()) { toast.error("Name is required"); return; }
-              setIsSaving(true);
-              try {
-                await api.supervisors.create?.({
-                  name: supervisorForm.name.trim(),
-                  email: supervisorForm.email.trim(),
-                  portalid: supervisorForm.portalId.trim(),
-                }) || Promise.resolve();
-                setAvailableSupervisors((current) => [...new Set([...current, supervisorForm.name.trim()])]);
-                setShowSupervisorDialog(false);
-                setSupervisorForm({ name: "", email: "", portalId: "" });
-                toast.success("Supervisor added and available for assignment.");
-              } catch { toast.error("Failed to add supervisor"); }
-              finally { setIsSaving(false); }
-            }}>Add Supervisor</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
