@@ -5,7 +5,7 @@ import { CourseCard } from "@/components/learning/CourseCard";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, PlusCircle, ArrowRight, Users, Activity, CalendarDays, ClipboardCheck, Eye, Shield } from "lucide-react";
+import { CheckCircle, PlusCircle, ArrowRight, Users, Activity, CalendarDays, ClipboardCheck, Eye, Shield, CalendarOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, startOfDay } from "date-fns";
 import { api } from "@/data/api";
@@ -539,6 +539,7 @@ function TrainerDashboard() {
                     { label: "Mark Attendance", icon: ClipboardCheck, link: "/attendance" },
                     { label: "Add Observations", icon: Eye, link: "/observations" },
                     { label: "View Students", icon: Users, link: "/students" },
+                    { label: "Request Leave", icon: CalendarOff, link: "/trainer-attendance" },
                     { label: "My Performance", icon: Activity, link: "/performance" },
                   ].map(({ label, icon: Icon, link }) => (
                     <Button key={label} variant="ghost" className="w-full justify-start gap-3 h-11" onClick={() => navigate(link)}>
