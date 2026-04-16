@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import CreateProgramPage from "./pages/CreateProgramPage";
 import SkillsMatrixPage from "./pages/SkillsMatrixPage";
+import SupervisorFormPage from "./pages/SupervisorFormPage";
 import AvailabilityPage from "./pages/AvailabilityPage";
 import TasksPage from "./pages/TasksPage";
 import MaterialsPage from "./pages/MaterialsPage";
@@ -50,7 +51,7 @@ const App = () => (
                 <AppShell>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/trainer-form" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerFormPage /></RequireAuth>} />
+                    <Route path="/supervisors" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><SupervisorFormPage /></RequireAuth>} />
                     <Route path="/create-program" element={<CreateProgramPage />} />
                     <Route path="/courses/:id" element={<CourseDetailPage />} />
                     <Route path="/students" element={<StudentsPage />} />

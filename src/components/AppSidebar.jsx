@@ -49,9 +49,9 @@ const getSupervisorGroups = () => [
     title: "People",
     icon: Users,
     children: [
-      { title: "Trainer Form", url: "/trainer-form", icon: UserCog },
+      { title: "Trainers", url: "/trainers", icon: UserCog },
+      { title: "Supervisors", url: "/supervisors", icon: Settings },
       { title: "Students", url: "/students", icon: Users },
-      { title: "Trainers", url: "/trainers", icon: Users },
       { title: "Org Chart", url: "/org-chart", icon: Network },
     ],
   },
