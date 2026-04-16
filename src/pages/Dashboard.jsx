@@ -1,11 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/store/app-store";
 import { Hero } from "@/components/learning/Hero";
-import { CourseCard } from "@/components/learning/CourseCard";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, PlusCircle, ArrowRight, Users, Activity, CalendarDays, ClipboardCheck, Eye, Shield, CalendarOff } from "lucide-react";
+import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
+import { StatCard } from "@/components/dashboard/StatCard";
+import {
+  CheckCircle, PlusCircle, ArrowRight, Users, Activity, CalendarDays,
+  ClipboardCheck, Eye, Shield, CalendarOff, BarChart3, Network, Grid3X3,
+  ListTodo, FileText, Award, History, UserCog, FolderOpen, BookOpen,
+  TrendingUp, Clock, AlertTriangle
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, startOfDay } from "date-fns";
 import { api } from "@/data/api";
@@ -17,10 +23,7 @@ const mapTrainerRecord = (trainer) => ({
   id: normalizeId(trainer.id),
   portalId: trainer.portalid || trainer.portalId || "",
   email: trainer.emailid || trainer.email || "",
-  name:
-    trainer.full_name ||
-    trainer.name ||
-    `${trainer.first_name || trainer.firstName || ""} ${trainer.last_name || trainer.lastName || ""}`.trim(),
+  name: trainer.full_name || trainer.name || `${trainer.first_name || trainer.firstName || ""} ${trainer.last_name || trainer.lastName || ""}`.trim(),
   status: trainer.status || "Active",
 });
 
@@ -50,63 +53,34 @@ const mapSessionRecord = (session) => ({
 });
 
 const deriveTrainingStatus = (training) => {
-  if (!training?.startDate || !training?.endDate) {
-    return training?.status || "Upcoming";
-  }
-
+  if (!training?.startDate || !training?.endDate) return training?.status || "Upcoming";
   const today = startOfDay(new Date());
   const startDate = startOfDay(new Date(`${training.startDate}T00:00:00`));
   const endDate = startOfDay(new Date(`${training.endDate}T00:00:00`));
-
-  if (endDate < today) {
-    return "Completed";
-  }
-
-  if (startDate > today) {
-    return "Upcoming";
-  }
-
+  if (endDate < today) return "Completed";
+  if (startDate > today) return "Upcoming";
   return "Ongoing";
 };
 
 const deriveTrainingStudentCount = (training, sessions) => {
-  if (Number(training?.studentCount || 0) > 0) {
-    return Number(training.studentCount || 0);
-  }
-
-  const relatedSessions = sessions.filter((session) =>
-    String(session.scheduledTrainingId) === String(training.id) ||
-    String(session.trainingId) === String(training.id)
+  if (Number(training?.studentCount || 0) > 0) return Number(training.studentCount || 0);
+  const relatedSessions = sessions.filter((s) =>
+    String(s.scheduledTrainingId) === String(training.id) || String(s.trainingId) === String(training.id)
   );
-
-  if (relatedSessions.length === 0) {
-    return 0;
-  }
-
-  return Math.max(...relatedSessions.map((session) => Array.isArray(session.studentIds) ? session.studentIds.length : 0));
+  if (relatedSessions.length === 0) return 0;
+  return Math.max(...relatedSessions.map((s) => Array.isArray(s.studentIds) ? s.studentIds.length : 0));
 };
 
 const enrichTrainingRecords = (trainings, sessions) =>
-  trainings.map((training) => ({
-    ...training,
-    status: deriveTrainingStatus(training),
-    studentCount: deriveTrainingStudentCount(training, sessions),
-  }));
+  trainings.map((t) => ({ ...t, status: deriveTrainingStatus(t), studentCount: deriveTrainingStudentCount(t, sessions) }));
 
 function DashboardShell({ isLoadingData, fetchError, children }) {
-  if (isLoadingData) {
-    return <p className="text-sm text-muted-foreground">Loading data...</p>;
-  }
-
-  if (fetchError) {
-    return <p className="text-sm text-destructive">Error in fetching data</p>;
-  }
-
+  if (isLoadingData) return <div className="flex items-center justify-center h-64"><div className="flex flex-col items-center gap-3"><div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /><p className="text-sm text-muted-foreground">Loading dashboard...</p></div></div>;
+  if (fetchError) return <p className="text-sm text-destructive">Error loading data</p>;
   return children;
 }
 
-function SupervisorDashboard() {
-  const navigate = useNavigate();
+function useDashboardData() {
   const [dashboardSummary, setDashboardSummary] = useState(null);
   const [trainers, setTrainers] = useState([]);
   const [scheduledTrainings, setScheduledTrainings] = useState([]);
@@ -116,63 +90,41 @@ function SupervisorDashboard() {
 
   useEffect(() => {
     let isMounted = true;
-
-    const loadDashboard = async () => {
+    const load = async () => {
       try {
-        if (isMounted) {
-          setIsLoadingData(true);
-          setFetchError(false);
-        }
-
-        const [summaryResponse, trainersResponse, trainingsResponse, sessionsResponse] = await Promise.all([
-          api.dashboard.summary(),
-          api.trainers.list(),
-          api.scheduledTrainings.list(),
-          api.scheduledTrainings.sessions(),
+        if (isMounted) { setIsLoadingData(true); setFetchError(false); }
+        const [summary, trainersRes, trainingsRes, sessionsRes] = await Promise.all([
+          api.dashboard.summary(), api.trainers.list(), api.scheduledTrainings.list(), api.scheduledTrainings.sessions(),
         ]);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setDashboardSummary(summaryResponse);
-        setTrainers(Array.isArray(trainersResponse?.trainers) ? trainersResponse.trainers.map(mapTrainerRecord) : []);
-        setScheduledTrainings(
-          Array.isArray(trainingsResponse?.scheduled_trainings)
-            ? trainingsResponse.scheduled_trainings.map(mapTrainingRecord)
-            : []
-        );
-        setSessions(Array.isArray(sessionsResponse?.sessions) ? sessionsResponse.sessions.map(mapSessionRecord) : []);
+        if (!isMounted) return;
+        setDashboardSummary(summary);
+        setTrainers(Array.isArray(trainersRes?.trainers) ? trainersRes.trainers.map(mapTrainerRecord) : []);
+        setScheduledTrainings(Array.isArray(trainingsRes?.scheduled_trainings) ? trainingsRes.scheduled_trainings.map(mapTrainingRecord) : []);
+        setSessions(Array.isArray(sessionsRes?.sessions) ? sessionsRes.sessions.map(mapSessionRecord) : []);
         setIsLoadingData(false);
       } catch (error) {
-        if (isMounted) {
-          setDashboardSummary(null);
-          setTrainers([]);
-          setScheduledTrainings([]);
-          setSessions([]);
-          setFetchError(true);
-          setIsLoadingData(false);
-        }
-        toast.error(error?.message || "Failed to load dashboard summary.");
+        if (isMounted) { setDashboardSummary(null); setTrainers([]); setScheduledTrainings([]); setSessions([]); setFetchError(true); setIsLoadingData(false); }
+        toast.error(error?.message || "Failed to load dashboard.");
       }
     };
-
-    loadDashboard();
-
-    return () => {
-      isMounted = false;
-    };
+    load();
+    return () => { isMounted = false; };
   }, []);
+
+  return { dashboardSummary, trainers, scheduledTrainings, sessions, isLoadingData, fetchError };
+}
+
+function SupervisorDashboard() {
+  const navigate = useNavigate();
+  const { dashboardSummary, trainers, scheduledTrainings, sessions, isLoadingData, fetchError } = useDashboardData();
 
   const trainerProgramCounts = useMemo(() => {
     const counts = new Map();
-    scheduledTrainings.forEach((training) => {
-      counts.set(training.trainerId, (counts.get(training.trainerId) || 0) + 1);
-    });
+    scheduledTrainings.forEach((t) => counts.set(t.trainerId, (counts.get(t.trainerId) || 0) + 1));
     return counts;
   }, [scheduledTrainings]);
 
-  const supervisorStats = {
+  const stats = {
     trainers: trainers.length,
     programs: Number(dashboardSummary?.training_program_count || scheduledTrainings.length),
     sessions: Number(dashboardSummary?.training_session_count || 0),
@@ -180,26 +132,39 @@ function SupervisorDashboard() {
   };
 
   const upcomingTrainings = useMemo(() => {
-    const summaryUpcoming = Array.isArray(dashboardSummary?.upcoming_trainings)
-      ? dashboardSummary.upcoming_trainings.map(mapTrainingRecord)
-      : [];
-
+    const summaryUpcoming = Array.isArray(dashboardSummary?.upcoming_trainings) ? dashboardSummary.upcoming_trainings.map(mapTrainingRecord) : [];
     const apiUpcoming = summaryUpcoming.length > 0 ? summaryUpcoming : scheduledTrainings;
-    return enrichTrainingRecords(apiUpcoming, sessions).filter(
-      (training) => training.status === "Upcoming" || training.status === "Ongoing"
-    );
+    return enrichTrainingRecords(apiUpcoming, sessions).filter((t) => t.status === "Upcoming" || t.status === "Ongoing");
   }, [dashboardSummary?.upcoming_trainings, scheduledTrainings, sessions]);
+
+  const supervisorQuickActions = [
+    { label: "Manage Trainers", description: "Add, edit, view all trainers", icon: UserCog, link: "/trainers", color: "text-primary bg-primary/10" },
+    { label: "Manage Supervisors", description: "Create supervisor profiles", icon: Shield, link: "/supervisors", color: "text-violet-600 bg-violet-100" },
+    { label: "Students", description: "View all student records", icon: Users, link: "/students", color: "text-indigo-600 bg-indigo-100" },
+    { label: "Org Chart", description: "Reporting hierarchy", icon: Network, link: "/org-chart", color: "text-teal-600 bg-teal-100" },
+    { label: "Calendar", description: "Schedules & sessions", icon: CalendarDays, link: "/calendar", color: "text-amber-600 bg-amber-100" },
+    { label: "Attendance & Leave", description: "Trainer attendance tracking", icon: ClipboardCheck, link: "/trainer-attendance", color: "text-emerald-600 bg-emerald-100" },
+    { label: "Observations", description: "Trainer performance surveys", icon: Eye, link: "/trainer-observations", color: "text-rose-600 bg-rose-100" },
+    { label: "Utilization", description: "Billed vs available hours", icon: BarChart3, link: "/trainer-utilization", color: "text-cyan-600 bg-cyan-100" },
+    { label: "Skills Matrix", description: "Trainer competency grid", icon: Grid3X3, link: "/skills-matrix", color: "text-orange-600 bg-orange-100" },
+    { label: "Progress", description: "Student milestone tracking", icon: TrendingUp, link: "/progress", color: "text-lime-600 bg-lime-100" },
+    { label: "Tasks", description: "Assignments & follow-ups", icon: ListTodo, link: "/tasks", color: "text-sky-600 bg-sky-100" },
+    { label: "Materials", description: "Training documents", icon: FileText, link: "/materials", color: "text-slate-600 bg-slate-100" },
+    { label: "Certifications", description: "Expiry tracking & uploads", icon: Award, link: "/certifications", color: "text-yellow-600 bg-yellow-100" },
+    { label: "Audit Trail", description: "System activity logs", icon: History, link: "/audit", color: "text-gray-600 bg-gray-100" },
+    { label: "Reports", description: "Export & analytics", icon: FolderOpen, link: "/reports", color: "text-purple-600 bg-purple-100" },
+  ];
 
   return (
     <DashboardShell isLoadingData={isLoadingData} fetchError={fetchError}>
-      <div className="max-w-7xl mx-auto space-y-8 pb-12 animate-in fade-in duration-700">
+      <div className="max-w-7xl mx-auto space-y-6 pb-12">
         <Hero
           badge="Supervisor Overview"
           title="Training Command Center"
-          description="Monitor all trainers, classes, and performance across the organization."
+          description="Monitor trainers, programs, and performance across the organization."
           actions={
             <>
-              <Button className="rounded-full px-6 bg-primary hover:bg-primary/90" onClick={() => navigate("/trainer-form")}>
+              <Button className="rounded-full px-6 bg-primary hover:bg-primary/90" onClick={() => navigate("/trainers")}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Trainer
               </Button>
               <Button variant="outline" className="rounded-full px-6" onClick={() => navigate("/calendar")}>
@@ -209,57 +174,57 @@ function SupervisorDashboard() {
           }
         />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total Trainers", value: supervisorStats.trainers, icon: Users, color: "text-primary bg-primary/10", link: "/trainer-form" },
-            { label: "Active Programs", value: supervisorStats.programs, icon: Activity, color: "text-emerald-600 bg-emerald-100", link: "/progress", emptyMsg: "No active programs available" },
-            { label: "Upcoming Sessions", value: supervisorStats.sessions, icon: CalendarDays, color: "text-amber-600 bg-amber-100", link: "/calendar" },
-            { label: "Total Students", value: supervisorStats.students, icon: Users, color: "text-purple-600 bg-purple-100", link: "/students" },
-          ].map(({ label, value, icon: Icon, color, link, emptyMsg }) => (
-            <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => { if (emptyMsg && value === 0) { toast.info(emptyMsg); return; } navigate(link); }}>
-              <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${color}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
-                <p className="text-2xl font-black">{value}</p>
-              </div>
-            </div>
-          ))}
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard label="Trainers" value={stats.trainers} icon={Users} color="text-primary bg-primary/10" link="/trainers" delay={0} />
+          <StatCard label="Programs" value={stats.programs} icon={Activity} color="text-emerald-600 bg-emerald-100" link="/progress" delay={50} />
+          <StatCard label="Sessions" value={stats.sessions} icon={CalendarDays} color="text-amber-600 bg-amber-100" link="/calendar" delay={100} />
+          <StatCard label="Students" value={stats.students} icon={Users} color="text-purple-600 bg-purple-100" link="/students" delay={150} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            <PremiumCard className="glass-card">
-              <PremiumCardHeader className="pb-2">
-                <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                  <Users className="h-4 w-4" /> Trainer Overview
-                </PremiumCardTitle>
-              </PremiumCardHeader>
-              <PremiumCardContent>
-                <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-                  {trainers.map((trainer) => (
-                    <div key={trainer.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer" onClick={() => navigate("/progress")}>
-                      <div className="h-3 w-3 rounded-full shrink-0 bg-primary/50" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">{trainer.name}</p>
-                        <p className="text-xs text-muted-foreground">{trainerProgramCounts.get(trainer.id) || 0} programs</p>
-                      </div>
-                      <Badge variant="outline" className={`text-[10px] ${trainer.status === "Active" ? "border-emerald-300 text-emerald-700" : ""}`}>
-                        {trainer.status}
-                      </Badge>
-                    </div>
-                  ))}
-                  {trainers.length === 0 && (
-                    <p className="text-sm text-muted-foreground italic text-center py-8">No trainers found</p>
-                  )}
-                </div>
-              </PremiumCardContent>
-            </PremiumCard>
+        {/* Quick Actions Grid */}
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+            <BookOpen className="h-4 w-4" /> Quick Actions
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {supervisorQuickActions.map((action, i) => (
+              <QuickActionCard key={action.label} {...action} delay={i * 40} />
+            ))}
           </div>
+        </div>
+
+        {/* Bottom Row: Trainers + Upcoming */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <PremiumCard className="glass-card animate-fade-scale" style={{ animationDelay: "200ms", animationFillMode: "backwards" }}>
+            <PremiumCardHeader className="pb-2">
+              <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Users className="h-4 w-4" /> Trainer Overview
+              </PremiumCardTitle>
+            </PremiumCardHeader>
+            <PremiumCardContent>
+              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+                {trainers.map((trainer) => (
+                  <div key={trainer.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer" onClick={() => navigate("/trainers")}>
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                      {trainer.name?.split(" ").map(n => n[0]).join("") || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{trainer.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{trainerProgramCounts.get(trainer.id) || 0} programs</p>
+                    </div>
+                    <Badge variant="outline" className={`text-[10px] ${trainer.status === "Active" ? "border-emerald-300 text-emerald-700" : ""}`}>
+                      {trainer.status}
+                    </Badge>
+                  </div>
+                ))}
+                {trainers.length === 0 && <p className="text-sm text-muted-foreground italic text-center py-6">No trainers found</p>}
+              </div>
+            </PremiumCardContent>
+          </PremiumCard>
 
           <div className="lg:col-span-2">
-            <PremiumCard className="glass-card">
+            <PremiumCard className="glass-card animate-fade-scale" style={{ animationDelay: "250ms", animationFillMode: "backwards" }}>
               <PremiumCardHeader className="pb-2 flex flex-row items-center justify-between">
                 <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                   <Shield className="h-4 w-4" /> Upcoming Trainings
@@ -269,9 +234,9 @@ function SupervisorDashboard() {
                 </Button>
               </PremiumCardHeader>
               <PremiumCardContent>
-                <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
                   {upcomingTrainings.map((training) => (
-                    <div key={training.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/10 hover:bg-muted/20 transition-colors">
+                    <div key={training.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors">
                       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                         <Activity className="h-4 w-4 text-primary" />
                       </div>
@@ -284,9 +249,7 @@ function SupervisorDashboard() {
                       </div>
                     </div>
                   ))}
-                  {upcomingTrainings.length === 0 && (
-                    <p className="text-sm text-muted-foreground italic text-center py-8">No upcoming trainings</p>
-                  )}
+                  {upcomingTrainings.length === 0 && <p className="text-sm text-muted-foreground italic text-center py-6">No upcoming trainings</p>}
                 </div>
               </PremiumCardContent>
             </PremiumCard>
@@ -294,34 +257,29 @@ function SupervisorDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <PremiumCard className="glass-card">
+        <PremiumCard className="glass-card animate-fade-scale" style={{ animationDelay: "300ms", animationFillMode: "backwards" }}>
           <PremiumCardHeader className="pb-2">
             <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Activity className="h-4 w-4" /> Recent Activity
+              <Clock className="h-4 w-4" /> Recent Activity
             </PremiumCardTitle>
           </PremiumCardHeader>
           <PremiumCardContent>
-            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-1.5 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
               {[
-                { action: "Trainer Added", user: "Admin", time: "2 hours ago", entity: "Sarah Wilson" },
-                { action: "Leave Request Submitted", user: "John Doe", time: "3 hours ago", entity: "Apr 10-12, 2026" },
-                { action: "Program Created", user: "Supervisor", time: "5 hours ago", entity: "Advanced React Training" },
-                { action: "Attendance Submitted", user: "Jane Smith", time: "6 hours ago", entity: "Day 15 - Cohort A" },
-                { action: "Observation Updated", user: "Mike Chen", time: "1 day ago", entity: "Student Performance Review" },
-                { action: "Material Uploaded", user: "Admin", time: "1 day ago", entity: "Training Manual v2.0" },
-                { action: "Certification Added", user: "HR System", time: "2 days ago", entity: "AWS Certification - Tom Lee" },
-                { action: "Leave Approved", user: "Supervisor", time: "2 days ago", entity: "John Doe - Apr 10-12" },
+                { action: "Trainer Added", user: "Admin", time: "2h ago", entity: "Sarah Wilson" },
+                { action: "Leave Request", user: "John Doe", time: "3h ago", entity: "Apr 10-12, 2026" },
+                { action: "Program Created", user: "Supervisor", time: "5h ago", entity: "Advanced React" },
+                { action: "Attendance Submitted", user: "Jane Smith", time: "6h ago", entity: "Day 15 - Cohort A" },
+                { action: "Observation Updated", user: "Mike Chen", time: "1d ago", entity: "Performance Review" },
+                { action: "Material Uploaded", user: "Admin", time: "1d ago", entity: "Manual v2.0" },
+                { action: "Certification Added", user: "HR", time: "2d ago", entity: "AWS - Tom Lee" },
               ].map((item, idx) => (
-                <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/10 hover:bg-muted/20 transition-colors">
-                  <div className="h-2 w-2 rounded-full bg-primary/50 mt-2 shrink-0" />
+                <div key={idx} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/20 transition-colors">
+                  <div className="h-2 w-2 rounded-full bg-primary/40 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{item.action}</p>
-                    <p className="text-xs text-muted-foreground">{item.entity}</p>
+                    <p className="text-sm font-medium">{item.action} — <span className="text-muted-foreground">{item.entity}</span></p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[10px] text-muted-foreground">{item.user}</p>
-                    <p className="text-[10px] text-muted-foreground">{item.time}</p>
-                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{item.time}</span>
                 </div>
               ))}
             </div>
@@ -335,91 +293,31 @@ function SupervisorDashboard() {
 function TrainerDashboard() {
   const navigate = useNavigate();
   const user = useAppStore((s) => s.user);
-  const [dashboardSummary, setDashboardSummary] = useState(null);
-  const [trainers, setTrainers] = useState([]);
-  const [scheduledTrainings, setScheduledTrainings] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadDashboard = async () => {
-      try {
-        if (isMounted) {
-          setIsLoadingData(true);
-          setFetchError(false);
-        }
-
-        const [summaryResponse, trainersResponse, trainingsResponse, sessionsResponse] = await Promise.all([
-          api.dashboard.summary(),
-          api.trainers.list(),
-          api.scheduledTrainings.list(),
-          api.scheduledTrainings.sessions(),
-        ]);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setDashboardSummary(summaryResponse);
-        setTrainers(Array.isArray(trainersResponse?.trainers) ? trainersResponse.trainers.map(mapTrainerRecord) : []);
-        setScheduledTrainings(
-          Array.isArray(trainingsResponse?.scheduled_trainings)
-            ? trainingsResponse.scheduled_trainings.map(mapTrainingRecord)
-            : []
-        );
-        setSessions(Array.isArray(sessionsResponse?.sessions) ? sessionsResponse.sessions.map(mapSessionRecord) : []);
-        setIsLoadingData(false);
-      } catch (error) {
-        if (isMounted) {
-          setDashboardSummary(null);
-          setTrainers([]);
-          setScheduledTrainings([]);
-          setSessions([]);
-          setFetchError(true);
-          setIsLoadingData(false);
-        }
-        toast.error(error?.message || "Failed to load dashboard summary.");
-      }
-    };
-
-    loadDashboard();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const { dashboardSummary, trainers, scheduledTrainings, sessions, isLoadingData, fetchError } = useDashboardData();
 
   const trainerId = useMemo(() => {
-    const matchedTrainer = trainers.find((trainer) =>
-      trainer.id === normalizeId(user?.trainerId || user?.id) ||
-      String(trainer.portalId || "").toLowerCase() === String(user?.portalId || "").toLowerCase() ||
-      String(trainer.email || "").toLowerCase() === String(user?.email || "").toLowerCase() ||
-      String(trainer.name || "").toLowerCase() === String(user?.name || "").toLowerCase()
+    const matched = trainers.find((t) =>
+      t.id === normalizeId(user?.trainerId || user?.id) ||
+      String(t.portalId || "").toLowerCase() === String(user?.portalId || "").toLowerCase() ||
+      String(t.email || "").toLowerCase() === String(user?.email || "").toLowerCase() ||
+      String(t.name || "").toLowerCase() === String(user?.name || "").toLowerCase()
     );
-
-    return normalizeId(matchedTrainer?.id || user?.trainerId || user?.id);
+    return normalizeId(matched?.id || user?.trainerId || user?.id);
   }, [trainers, user]);
 
-  const myScheduledTrainings = useMemo(
-    () => scheduledTrainings.filter((training) => String(training.trainerId) === String(trainerId)),
-    [scheduledTrainings, trainerId]
-  );
+  const myScheduledTrainings = useMemo(() => scheduledTrainings.filter((t) => String(t.trainerId) === String(trainerId)), [scheduledTrainings, trainerId]);
 
   const myTrainings = useMemo(() => {
     const summaryPrograms = Array.isArray(dashboardSummary?.my_trainings) ? dashboardSummary.my_trainings.map(mapTrainingRecord) : [];
     const apiPrograms = myScheduledTrainings.length > 0 ? myScheduledTrainings : summaryPrograms;
-
     return enrichTrainingRecords(apiPrograms, sessions);
   }, [dashboardSummary?.my_trainings, myScheduledTrainings, sessions]);
 
   const upcomingSessions = useMemo(() => {
     const today = startOfDay(new Date());
     return sessions
-      .filter((session) => String(session.trainerId) === String(trainerId))
-      .filter((session) => session.date && startOfDay(new Date(`${session.date}T00:00:00`)) >= today)
+      .filter((s) => String(s.trainerId) === String(trainerId))
+      .filter((s) => s.date && startOfDay(new Date(`${s.date}T00:00:00`)) >= today)
       .sort((a, b) => new Date(`${a.date}T00:00:00`) - new Date(`${b.date}T00:00:00`));
   }, [sessions, trainerId]);
 
@@ -430,13 +328,26 @@ function TrainerDashboard() {
     activeStudents: Number(dashboardSummary?.active_student_count || 0),
   };
 
+  const trainerQuickActions = [
+    { label: "Mark Attendance", description: "Record daily attendance", icon: ClipboardCheck, link: "/attendance", color: "text-emerald-600 bg-emerald-100" },
+    { label: "Add Observations", description: "Daily student ratings", icon: Eye, link: "/observations", color: "text-rose-600 bg-rose-100" },
+    { label: "My Students", description: "View student profiles", icon: Users, link: "/students", color: "text-indigo-600 bg-indigo-100" },
+    { label: "Request Leave", description: "Submit leave requests", icon: CalendarOff, link: "/trainer-attendance", color: "text-amber-600 bg-amber-100" },
+    { label: "Schedule Training", description: "Create new program", icon: PlusCircle, link: "/create-program", color: "text-primary bg-primary/10" },
+    { label: "My Calendar", description: "Sessions & schedule", icon: CalendarDays, link: "/calendar", color: "text-cyan-600 bg-cyan-100" },
+    { label: "Progress", description: "Student milestones", icon: TrendingUp, link: "/progress", color: "text-lime-600 bg-lime-100" },
+    { label: "Tasks", description: "Assignments & to-dos", icon: ListTodo, link: "/tasks", color: "text-sky-600 bg-sky-100" },
+    { label: "Materials", description: "Training documents", icon: FileText, link: "/materials", color: "text-slate-600 bg-slate-100" },
+    { label: "Certifications", description: "My certifications", icon: Award, link: "/certifications", color: "text-yellow-600 bg-yellow-100" },
+  ];
+
   return (
     <DashboardShell isLoadingData={isLoadingData} fetchError={fetchError}>
-      <div className="max-w-7xl mx-auto space-y-8 pb-12 animate-in fade-in duration-700">
+      <div className="max-w-7xl mx-auto space-y-6 pb-12">
         <Hero
           badge={`Welcome back, ${user?.name || "Trainer"}`}
           title="Your Training Workspace"
-          description="Manage your classes, track student progress, and record daily observations."
+          description="Manage classes, track students, and record daily observations."
           actions={
             <>
               <Button className="rounded-full px-6 bg-primary hover:bg-primary/90" onClick={() => navigate("/create-program")}>
@@ -449,108 +360,79 @@ function TrainerDashboard() {
           }
         />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "My Students", value: trainerStats.students, icon: Users, color: "text-primary bg-primary/10", link: "/students" },
-            { label: "Programs", value: trainerStats.programs, icon: Activity, color: "text-emerald-600 bg-emerald-100", link: "/performance" },
-            { label: "Sessions", value: trainerStats.sessions, icon: CalendarDays, color: "text-amber-600 bg-amber-100", link: "/calendar" },
-            { label: "Active Students", value: trainerStats.activeStudents, icon: CheckCircle, color: "text-purple-600 bg-purple-100", link: "/students" },
-          ].map(({ label, value, icon: Icon, color, link }) => (
-            <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(link)}>
-              <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${color}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
-                <p className="text-2xl font-black">{value}</p>
-              </div>
-            </div>
-          ))}
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard label="My Students" value={trainerStats.students} icon={Users} color="text-primary bg-primary/10" link="/students" delay={0} />
+          <StatCard label="Programs" value={trainerStats.programs} icon={Activity} color="text-emerald-600 bg-emerald-100" link="/progress" delay={50} />
+          <StatCard label="Sessions" value={trainerStats.sessions} icon={CalendarDays} color="text-amber-600 bg-amber-100" link="/calendar" delay={100} />
+          <StatCard label="Active" value={trainerStats.activeStudents} icon={CheckCircle} color="text-purple-600 bg-purple-100" link="/students" delay={150} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <PremiumCard className="glass-card">
-              <PremiumCardHeader className="pb-2">
-                <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Upcoming Sessions</PremiumCardTitle>
-              </PremiumCardHeader>
-              <PremiumCardContent>
-                {upcomingSessions.length > 0 ? (
-                  <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-                    {upcomingSessions.map((session) => (
-                      <div key={session.id} className="flex items-center gap-4 p-4 rounded-xl bg-muted/20 hover:bg-muted/30 transition-colors">
-                        <div className="flex flex-col items-center bg-primary/10 rounded-xl p-3 shrink-0">
-                          <span className="text-xs font-bold text-primary uppercase">{session.date ? format(new Date(`${session.date}T00:00:00`), "MMM") : "-"}</span>
-                          <span className="text-xl font-black text-primary">{session.date ? format(new Date(`${session.date}T00:00:00`), "d") : "-"}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold truncate">{session.title}</p>
-                          <p className="text-xs text-muted-foreground">{session.startTime} - {session.endTime} - {session.location}</p>
-                        </div>
-                        <Badge variant="outline" className="text-xs shrink-0">{session.studentIds.length} students</Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground italic text-center py-8">No upcoming sessions</p>
-                )}
-              </PremiumCardContent>
-            </PremiumCard>
-
-            <PremiumCard className="glass-card">
-              <PremiumCardHeader className="pb-2 flex flex-row items-center justify-between">
-                <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">My Programs</PremiumCardTitle>
-                <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={() => navigate("/performance")}>
-                  View Timeline <ArrowRight className="ml-1 h-3 w-3" />
-                </Button>
-              </PremiumCardHeader>
-              <PremiumCardContent>
-                <div className="max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {myTrainings.map((training) => (
-                      <CourseCard
-                        key={training.id}
-                        title={training.title}
-                        description={`${training.courseCode} - ${training.startDate} to ${training.endDate}`}
-                        progress={training.status === "Completed" ? 100 : training.status === "Ongoing" ? 50 : 0}
-                        studentsCount={training.studentCount}
-                        capacity={training.capacity || training.studentCount}
-                        nextSession={training.status}
-                        onClick={() => navigate("/calendar")}
-                      />
-                    ))}
-                  </div>
-                </div>
-                {myTrainings.length === 0 && (
-                  <p className="text-muted-foreground italic text-center py-8">No programs found</p>
-                )}
-              </PremiumCardContent>
-            </PremiumCard>
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+            <BookOpen className="h-4 w-4" /> Quick Actions
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {trainerQuickActions.map((action, i) => (
+              <QuickActionCard key={action.label} {...action} delay={i * 40} />
+            ))}
           </div>
+        </div>
 
-          <div className="space-y-6">
-            <PremiumCard className="glass-card">
-              <PremiumCardHeader className="pb-2">
-                <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Quick Actions</PremiumCardTitle>
-              </PremiumCardHeader>
-              <PremiumCardContent>
-                <div className="space-y-2">
-                  {[
-                    { label: "Mark Attendance", icon: ClipboardCheck, link: "/attendance" },
-                    { label: "Add Observations", icon: Eye, link: "/observations" },
-                    { label: "View Students", icon: Users, link: "/students" },
-                    { label: "Request Leave", icon: CalendarOff, link: "/trainer-attendance" },
-                    { label: "My Performance", icon: Activity, link: "/performance" },
-                  ].map(({ label, icon: Icon, link }) => (
-                    <Button key={label} variant="ghost" className="w-full justify-start gap-3 h-11" onClick={() => navigate(link)}>
-                      <Icon className="h-4 w-4 text-primary" />
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              </PremiumCardContent>
-            </PremiumCard>
-          </div>
+        {/* Sessions + Programs */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PremiumCard className="glass-card animate-fade-scale" style={{ animationDelay: "200ms", animationFillMode: "backwards" }}>
+            <PremiumCardHeader className="pb-2">
+              <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <CalendarDays className="h-4 w-4" /> Upcoming Sessions
+              </PremiumCardTitle>
+            </PremiumCardHeader>
+            <PremiumCardContent>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {upcomingSessions.length > 0 ? upcomingSessions.slice(0, 8).map((session) => (
+                  <div key={session.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                    <div className="flex flex-col items-center bg-primary/10 rounded-lg px-2.5 py-1.5 shrink-0">
+                      <span className="text-[10px] font-bold text-primary uppercase">{session.date ? format(new Date(`${session.date}T00:00:00`), "MMM") : "-"}</span>
+                      <span className="text-lg font-black text-primary leading-tight">{session.date ? format(new Date(`${session.date}T00:00:00`), "d") : "-"}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{session.title}</p>
+                      <p className="text-[11px] text-muted-foreground">{session.startTime} – {session.endTime} · {session.location}</p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{session.studentIds.length} students</Badge>
+                  </div>
+                )) : <p className="text-muted-foreground italic text-center py-6 text-sm">No upcoming sessions</p>}
+              </div>
+            </PremiumCardContent>
+          </PremiumCard>
+
+          <PremiumCard className="glass-card animate-fade-scale" style={{ animationDelay: "250ms", animationFillMode: "backwards" }}>
+            <PremiumCardHeader className="pb-2 flex flex-row items-center justify-between">
+              <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4" /> My Programs
+              </PremiumCardTitle>
+              <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={() => navigate("/progress")}>
+                View All <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            </PremiumCardHeader>
+            <PremiumCardContent>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {myTrainings.length > 0 ? myTrainings.map((training) => (
+                  <div key={training.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => navigate("/calendar")}>
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Activity className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{training.title}</p>
+                      <p className="text-[11px] text-muted-foreground">{training.courseCode} · {training.studentCount} students</p>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">{training.status}</Badge>
+                  </div>
+                )) : <p className="text-muted-foreground italic text-center py-6 text-sm">No programs found</p>}
+              </div>
+            </PremiumCardContent>
+          </PremiumCard>
         </div>
       </div>
     </DashboardShell>
@@ -560,6 +442,5 @@ function TrainerDashboard() {
 export default function Dashboard() {
   const user = useAppStore((s) => s.user);
   const isSupervisor = user?.role === "supervisor" || user?.role === "admin";
-
   return isSupervisor ? <SupervisorDashboard /> : <TrainerDashboard />;
 }
