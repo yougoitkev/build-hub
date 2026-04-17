@@ -111,8 +111,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
-      <PremiumCard className="w-full max-w-md animate-fade-in shadow-2xl border-primary/10">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Apple-style ambient gradient background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-accent/10 blur-[120px]" />
+        <div className="absolute top-1/3 right-1/3 h-[300px] w-[300px] rounded-full bg-primary/8 blur-[100px]" />
+      </div>
+
+      <PremiumCard className="relative w-full max-w-md animate-fade-scale shadow-[0_24px_64px_-16px_rgba(0,0,0,0.18)] border-border/40 bg-card/70 backdrop-blur-2xl" hoverable={false}>
         <PremiumCardHeader className="text-center pb-6 pt-8">
           <img src={tmsLogo} alt="TMS Logo" className="mx-auto h-16 w-16 object-contain mb-4" />
           <PremiumCardTitle className="text-3xl font-black tracking-tight">Training Management System</PremiumCardTitle>
