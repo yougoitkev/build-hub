@@ -329,10 +329,10 @@ export default function LeaveRequestsPage() {
               {isSupervisor ? "Leave Approval Center" : "Time Off"}
             </span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
             {isSupervisor ? "Approve with clarity." : "Take time, beautifully."}
           </h1>
-          <p className="max-w-2xl mx-auto text-base md:text-lg text-muted-foreground leading-relaxed">
+          <p className="max-w-2xl mx-auto text-sm md:text-base text-muted-foreground leading-relaxed">
             {isSupervisor
               ? "Review every request in one calm, focused space. Approvals sync everywhere — calendar, notifications, schedules."
               : "Request time off in a few thoughtful taps. Track approvals as they happen. Stay in flow."}
