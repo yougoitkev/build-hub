@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/store/app-store";
-import { Hero } from "@/components/learning/Hero";
-import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -37,16 +33,18 @@ import {
   Clock3,
   FileText,
   Send,
-  ShieldCheck,
+  Sparkles,
   Trash2,
   XCircle,
+  Plane,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const statusStyles = {
-  Approved: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
-  Pending: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
-  Rejected: "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300",
+  Approved: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
+  Pending: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
+  Rejected: "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400",
 };
 
 const requestWindow = {
@@ -61,42 +59,77 @@ const sortByRecentWindow = (left, right) => {
 };
 
 const formatLeaveDates = (record) => {
-  if (!record?.startDate || !record?.endDate) {
-    return "Dates not available";
-  }
-
+  if (!record?.startDate || !record?.endDate) return "Dates not available";
   if (record.startDate === record.endDate) {
     return format(parseISO(record.startDate), "MMM d, yyyy");
   }
-
-  return `${format(parseISO(record.startDate), "MMM d, yyyy")} to ${format(parseISO(record.endDate), "MMM d, yyyy")}`;
+  return `${format(parseISO(record.startDate), "MMM d")} – ${format(parseISO(record.endDate), "MMM d, yyyy")}`;
 };
 
 const getDurationLabel = (record) => {
-  if (!record?.startDate || !record?.endDate) {
-    return "";
-  }
-
+  if (!record?.startDate || !record?.endDate) return "";
   const days = differenceInCalendarDays(parseISO(record.endDate), parseISO(record.startDate)) + 1;
   return `${days} day${days === 1 ? "" : "s"}`;
 };
 
-function SummaryCard({ label, value, hint, icon: Icon, tone }) {
+function GlassStat({ label, value, hint, icon: Icon, accent = "from-primary/20 to-primary/5", delay = 0 }) {
   return (
-    <PremiumCard className="border-border/60 bg-card/80">
-      <PremiumCardContent className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-            <p className="mt-3 text-3xl font-black tracking-tight text-foreground">{value}</p>
-            {hint ? <p className="mt-2 text-xs text-muted-foreground">{hint}</p> : null}
-          </div>
-          <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", tone)}>
-            <Icon className="h-5 w-5" />
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-3xl border border-border/40 bg-card/60 backdrop-blur-2xl p-6",
+        "shadow-[0_8px_32px_-12px_rgba(0,0,0,0.08)] hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.15)]",
+        "transition-all duration-500 hover:-translate-y-1 animate-fade-scale"
+      )}
+      style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
+    >
+      <div className={cn("absolute -top-12 -right-12 h-40 w-40 rounded-full bg-gradient-to-br blur-2xl opacity-60 group-hover:opacity-90 transition-opacity duration-500", accent)} />
+      <div className="relative">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-background/80 backdrop-blur border border-border/40 shadow-sm">
+            <Icon className="h-4 w-4 text-foreground/70" />
           </div>
         </div>
-      </PremiumCardContent>
-    </PremiumCard>
+        <p className="mt-4 text-4xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
+        {hint ? <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function LeaveRow({ record, trainerName, statusStyle, actions, delay = 0 }) {
+  return (
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border border-border/40 bg-card/40 backdrop-blur-xl p-5",
+        "hover:bg-card/70 hover:border-border/70 hover:shadow-md transition-all duration-300",
+        "animate-fade-scale"
+      )}
+      style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
+    >
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-4 min-w-0 flex-1">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 shrink-0">
+            <Plane className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              {trainerName ? <p className="text-sm font-semibold text-foreground">{trainerName}</p> : null}
+              <span className="text-xs text-muted-foreground">{record.type}</span>
+              <Badge variant="outline" className={cn("text-[10px] font-semibold border", statusStyle)}>
+                {record.status}
+              </Badge>
+            </div>
+            <p className="mt-1 text-base font-medium text-foreground tabular-nums">{formatLeaveDates(record)}</p>
+            <p className="text-xs text-muted-foreground">{getDurationLabel(record)}</p>
+            {record.notes ? (
+              <p className="mt-2 text-sm text-muted-foreground/90 line-clamp-2">{record.notes}</p>
+            ) : null}
+          </div>
+        </div>
+        {actions ? <div className="flex items-center gap-2 shrink-0">{actions}</div> : null}
+      </div>
+    </div>
   );
 }
 
@@ -124,13 +157,11 @@ export default function LeaveRequestsPage() {
 
   const loadData = async () => {
     setLoading(true);
-
     try {
       const [trainerResponse, availabilityResponse] = await Promise.all([
         api.trainers.list(),
         api.availabilityPage.list(requestWindow),
       ]);
-
       setTrainers((trainerResponse?.trainers || []).map(normalizeTrainer));
       setLeaveRequests((availabilityResponse?.availability || []).map(normalizeAvailabilityRecord));
     } catch {
@@ -154,12 +185,8 @@ export default function LeaveRequestsPage() {
   const filteredSupervisorRequests = useMemo(
     () =>
       sortedRequests.filter((record) => {
-        if (statusFilter !== "all" && String(record.status).toLowerCase() !== statusFilter) {
-          return false;
-        }
-        if (trainerFilter !== "all" && String(record.trainerId) !== String(trainerFilter)) {
-          return false;
-        }
+        if (statusFilter !== "all" && String(record.status).toLowerCase() !== statusFilter) return false;
+        if (trainerFilter !== "all" && String(record.trainerId) !== String(trainerFilter)) return false;
         return true;
       }),
     [sortedRequests, statusFilter, trainerFilter]
@@ -171,18 +198,14 @@ export default function LeaveRequestsPage() {
   const approvedThisMonth = useMemo(() => {
     const monthStart = startOfMonth(new Date());
     return sortedRequests.filter((record) => {
-      if (String(record.status) !== "Approved" || !record.startDate) {
-        return false;
-      }
+      if (String(record.status) !== "Approved" || !record.startDate) return false;
       return parseISO(record.startDate) >= monthStart;
     }).length;
   }, [sortedRequests]);
   const trainersOnLeaveToday = useMemo(() => {
     const today = startOfDay(new Date());
     return sortedRequests.filter((record) => {
-      if (String(record.status) !== "Approved" || !record.startDate || !record.endDate) {
-        return false;
-      }
+      if (String(record.status) !== "Approved" || !record.startDate || !record.endDate) return false;
       return isWithinInterval(today, {
         start: startOfDay(parseISO(record.startDate)),
         end: startOfDay(parseISO(record.endDate)),
@@ -191,26 +214,26 @@ export default function LeaveRequestsPage() {
   }, [sortedRequests]);
   const latestTrainerDecision = myRequests.find((record) => String(record.status) !== "Pending")?.status || "Pending";
 
+  const formDuration = useMemo(() => {
+    if (!form.startDate || !form.endDate || form.endDate < form.startDate) return 0;
+    return differenceInCalendarDays(parseISO(form.endDate), parseISO(form.startDate)) + 1;
+  }, [form.startDate, form.endDate]);
+
   const handleSubmitRequest = async (event) => {
     event.preventDefault();
-
     if (!trainerIdentity.trainerId || !activeTrainer?.backendId) {
       toast.error("We could not match your login to a trainer record.");
       return;
     }
-
     if (!form.startDate || !form.endDate) {
       toast.error("Please select the leave dates.");
       return;
     }
-
     if (form.endDate < form.startDate) {
       toast.error("End date cannot be earlier than the start date.");
       return;
     }
-
     setSaving(true);
-
     try {
       const payload = {
         trainer_id: toApiId(activeTrainer.backendId),
@@ -221,7 +244,6 @@ export default function LeaveRequestsPage() {
         status: "Pending",
         created_by_portalid: user?.portalId || user?.id || "system",
       };
-
       const response = await api.availabilityPage.create(payload);
       await loadData();
       createLeaveRequestSubmittedNotification({
@@ -247,9 +269,9 @@ export default function LeaveRequestsPage() {
       setSaving(false);
     }
   };
+
   const handleDecision = async (record, nextStatus) => {
     setSaving(true);
-
     try {
       const trainer = trainers.find((item) => String(item.id) === String(record.trainerId));
       await api.availabilityPage.update(record.backendId, {
@@ -278,7 +300,6 @@ export default function LeaveRequestsPage() {
 
   const handleCancelRequest = async (record) => {
     setSaving(true);
-
     try {
       await api.availabilityPage.remove(record.backendId);
       await loadData();
@@ -291,385 +312,353 @@ export default function LeaveRequestsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12">
-      <Hero
-        badge={isSupervisor ? "Supervisor Leave Tracker" : "Trainer Leave Center"}
-        title={isSupervisor ? "Review And Track Trainer Leave" : "Request Leave Without Leaving Your Workflow"}
-        description={
-          isSupervisor
-            ? "Monitor every request, keep a live approval queue, and make sure schedule decisions are visible to the whole team."
-            : "Apply for time off on a dedicated page, track the approval status, and keep your supervisor in the loop automatically."
-        }
-        actions={
-          isSupervisor ? (
-            <div className="flex items-center gap-3 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-              {pendingRequests.length} pending request{pendingRequests.length === 1 ? "" : "s"}
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-sm text-muted-foreground">
-              <CalendarOff className="h-4 w-4 text-primary" />
-              Requests sync into supervisor tracking and notifications
-            </div>
-          )
-        }
-      />
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {isSupervisor ? (
-          <>
-            <SummaryCard
-              label="Pending Approval"
-              value={pendingRequests.length}
-              hint="Requests waiting on supervisor action"
-              icon={Clock3}
-              tone="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-            />
-            <SummaryCard
-              label="Approved This Month"
-              value={approvedThisMonth}
-              hint="Confirmed leave windows scheduled this month"
-              icon={CheckCircle2}
-              tone="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-            />
-            <SummaryCard
-              label="On Leave Today"
-              value={trainersOnLeaveToday}
-              hint="Approved absences active right now"
-              icon={CalendarOff}
-              tone="bg-primary/10 text-primary"
-            />
-          </>
-        ) : (
-          <>
-            <SummaryCard
-              label="My Requests"
-              value={myRequests.length}
-              hint="All leave submissions tied to your login"
-              icon={FileText}
-              tone="bg-primary/10 text-primary"
-            />
-            <SummaryCard
-              label="Pending"
-              value={myRequests.filter((record) => String(record.status) === "Pending").length}
-              hint="Waiting for supervisor approval"
-              icon={Clock3}
-              tone="bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-            />
-            <SummaryCard
-              label="Latest Decision"
-              value={latestTrainerDecision}
-              hint="Most recent non-pending outcome"
-              icon={latestTrainerDecision === "Rejected" ? XCircle : CheckCircle2}
-              tone={latestTrainerDecision === "Rejected" ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}
-            />
-          </>
-        )}
+    <div className="relative min-h-screen">
+      {/* Ambient background gradients — Apple-style */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-primary/20 via-primary/5 to-transparent blur-3xl" />
+        <div className="absolute top-1/3 -right-40 h-[600px] w-[600px] rounded-full bg-gradient-to-bl from-accent/15 via-primary/5 to-transparent blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-gradient-to-t from-primary/10 to-transparent blur-3xl" />
       </div>
 
-      <Tabs defaultValue={isSupervisor ? "queue" : "apply"} className="space-y-4">
-        <TabsList>
+      <div className="max-w-6xl mx-auto px-6 py-10 space-y-10">
+        {/* Hero — editorial Apple style */}
+        <div className="text-center space-y-5 animate-fade-scale" style={{ animationFillMode: "backwards" }}>
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-background/60 backdrop-blur-xl px-4 py-1.5 shadow-sm">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium tracking-wide text-foreground/80">
+              {isSupervisor ? "Leave Approval Center" : "Time Off"}
+            </span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
+            {isSupervisor ? "Approve with clarity." : "Take time, beautifully."}
+          </h1>
+          <p className="max-w-2xl mx-auto text-base md:text-lg text-muted-foreground leading-relaxed">
+            {isSupervisor
+              ? "Review every request in one calm, focused space. Approvals sync everywhere — calendar, notifications, schedules."
+              : "Request time off in a few thoughtful taps. Track approvals as they happen. Stay in flow."}
+          </p>
+        </div>
+
+        {/* Glass stats */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           {isSupervisor ? (
             <>
-              <TabsTrigger value="queue">Approval Queue</TabsTrigger>
-              <TabsTrigger value="history">All Requests</TabsTrigger>
+              <GlassStat label="Pending" value={pendingRequests.length} hint="Awaiting your decision" icon={Clock3} accent="from-amber-400/30 to-amber-200/5" delay={50} />
+              <GlassStat label="Approved this month" value={approvedThisMonth} hint="Confirmed leave windows" icon={CheckCircle2} accent="from-emerald-400/30 to-emerald-200/5" delay={150} />
+              <GlassStat label="On leave today" value={trainersOnLeaveToday} hint="Active right now" icon={CalendarOff} accent="from-primary/30 to-primary/5" delay={250} />
             </>
           ) : (
             <>
-              <TabsTrigger value="apply">Apply Leave</TabsTrigger>
-              <TabsTrigger value="history">My Requests</TabsTrigger>
+              <GlassStat label="Total requests" value={myRequests.length} hint="All your submissions" icon={FileText} accent="from-primary/30 to-primary/5" delay={50} />
+              <GlassStat label="Pending" value={myRequests.filter((r) => String(r.status) === "Pending").length} hint="Waiting on supervisor" icon={Clock3} accent="from-amber-400/30 to-amber-200/5" delay={150} />
+              <GlassStat
+                label="Latest decision"
+                value={latestTrainerDecision}
+                hint="Most recent outcome"
+                icon={latestTrainerDecision === "Rejected" ? XCircle : CheckCircle2}
+                accent={latestTrainerDecision === "Rejected" ? "from-rose-400/30 to-rose-200/5" : "from-emerald-400/30 to-emerald-200/5"}
+                delay={250}
+              />
             </>
           )}
-        </TabsList>
-        {isSupervisor ? (
-          <>
-            <TabsContent value="queue" className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-                <PremiumCard>
-                  <PremiumCardHeader>
-                    <PremiumCardTitle className="text-base font-bold">Pending Requests</PremiumCardTitle>
-                  </PremiumCardHeader>
-                  <PremiumCardContent className="space-y-3">
-                    {loading ? <p className="text-sm text-muted-foreground">Loading requests...</p> : null}
-                    {!loading && pendingRequests.length === 0 ? (
-                      <p className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
-                        No pending leave requests right now.
-                      </p>
-                    ) : null}
-                    {!loading && pendingRequests.map((record) => {
-                      const trainerName = trainers.find((trainer) => String(trainer.id) === String(record.trainerId))?.name || record.trainerId;
-                      return (
-                        <div key={record.id} className="rounded-2xl border border-border/70 bg-background/70 p-4">
-                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                            <div className="space-y-2">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-semibold text-foreground">{trainerName}</p>
-                                <Badge className={statusStyles.Pending}>Pending</Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{record.type} - {formatLeaveDates(record)} - {getDurationLabel(record)}</p>
-                              {record.notes ? <p className="text-sm text-muted-foreground">{record.notes}</p> : null}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-                                onClick={() => handleDecision(record, "Approved")}
-                                disabled={saving}
-                              >
-                                <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-                                onClick={() => handleDecision(record, "Rejected")}
-                                disabled={saving}
-                              >
-                                <XCircle className="mr-2 h-4 w-4" /> Reject
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </PremiumCardContent>
-                </PremiumCard>
+        </div>
 
-                <Card className="border-primary/15 bg-primary/[0.03]">
-                  <CardHeader>
-                    <CardTitle className="text-base">Approval Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 text-sm text-muted-foreground">
-                    <div className="rounded-2xl border border-border/70 bg-background/80 p-4">
-                      <p className="font-medium text-foreground">Notifications stay connected</p>
-                      <p className="mt-2">Every approval or rejection posts into the shared notification panel so trainers and supervisors see the same workflow outcome after they log in on this machine.</p>
-                    </div>
-                    <div className="rounded-2xl border border-border/70 bg-background/80 p-4">
-                      <p className="font-medium text-foreground">Tracking stays central</p>
-                      <p className="mt-2">Use the history tab to filter by trainer or status when you need a clean audit trail for coaching, scheduling, or staffing reviews.</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+        <Tabs defaultValue={isSupervisor ? "queue" : "apply"} className="space-y-6">
+          <TabsList className="mx-auto flex w-fit rounded-full border border-border/40 bg-background/60 backdrop-blur-xl p-1 shadow-sm">
+            {isSupervisor ? (
+              <>
+                <TabsTrigger value="queue" className="rounded-full px-6 data-[state=active]:bg-foreground data-[state=active]:text-background transition-all">
+                  Queue
+                </TabsTrigger>
+                <TabsTrigger value="history" className="rounded-full px-6 data-[state=active]:bg-foreground data-[state=active]:text-background transition-all">
+                  All requests
+                </TabsTrigger>
+              </>
+            ) : (
+              <>
+                <TabsTrigger value="apply" className="rounded-full px-6 data-[state=active]:bg-foreground data-[state=active]:text-background transition-all">
+                  Request
+                </TabsTrigger>
+                <TabsTrigger value="history" className="rounded-full px-6 data-[state=active]:bg-foreground data-[state=active]:text-background transition-all">
+                  History
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
 
-            <TabsContent value="history" className="space-y-4">
-              <Card>
-                <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <CardTitle className="text-base">Request History</CardTitle>
-                  <div className="flex flex-wrap gap-3">
-                    <Select value={trainerFilter} onValueChange={setTrainerFilter}>
-                      <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="Filter by trainer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All trainers</SelectItem>
-                        {trainers.map((trainer) => (
-                          <SelectItem key={trainer.id} value={trainer.id}>{trainer.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filter by status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
+          {isSupervisor ? (
+            <>
+              <TabsContent value="queue" className="space-y-3">
+                {loading ? (
+                  <div className="rounded-3xl border border-border/40 bg-card/40 backdrop-blur-xl p-12 text-center text-sm text-muted-foreground">
+                    Loading requests…
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Trainer</TableHead>
-                        <TableHead>Leave</TableHead>
-                        <TableHead>Window</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Notes</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">Loading requests...</TableCell>
-                        </TableRow>
-                      ) : null}
-                      {!loading && filteredSupervisorRequests.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">{trainers.find((trainer) => String(trainer.id) === String(record.trainerId))?.name || record.trainerId}</TableCell>
-                          <TableCell>{record.type}</TableCell>
-                          <TableCell>
-                            <div className="text-sm">{formatLeaveDates(record)}</div>
-                            <div className="text-xs text-muted-foreground">{getDurationLabel(record)}</div>
-                          </TableCell>
-                          <TableCell><Badge className={statusStyles[record.status] || statusStyles.Pending}>{record.status}</Badge></TableCell>
-                          <TableCell className="max-w-[240px] text-sm text-muted-foreground">{record.notes || "No notes provided"}</TableCell>
-                          <TableCell className="text-right">
-                            {record.status === "Pending" ? (
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleDecision(record, "Approved")} disabled={saving}>Approve</Button>
-                                <Button variant="outline" size="sm" onClick={() => handleDecision(record, "Rejected")} disabled={saving}>Reject</Button>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Finalized</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
+                ) : pendingRequests.length === 0 ? (
+                  <div className="rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-xl p-16 text-center animate-fade-scale">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-400/20 to-emerald-200/5 mb-4">
+                      <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+                    </div>
+                    <p className="text-lg font-semibold text-foreground">All caught up</p>
+                    <p className="mt-1 text-sm text-muted-foreground">No pending leave requests right now.</p>
+                  </div>
+                ) : (
+                  pendingRequests.map((record, idx) => {
+                    const trainerName = trainers.find((t) => String(t.id) === String(record.trainerId))?.name || record.trainerId;
+                    return (
+                      <LeaveRow
+                        key={record.id}
+                        record={record}
+                        trainerName={trainerName}
+                        statusStyle={statusStyles.Pending}
+                        delay={idx * 60}
+                        actions={
+                          <>
+                            <Button
+                              size="sm"
+                              className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20"
+                              onClick={() => handleDecision(record, "Approved")}
+                              disabled={saving}
+                            >
+                              <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-full border-border/60 text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 hover:border-rose-500/40"
+                              onClick={() => handleDecision(record, "Rejected")}
+                              disabled={saving}
+                            >
+                              <XCircle className="mr-1.5 h-4 w-4" /> Decline
+                            </Button>
+                          </>
+                        }
+                      />
+                    );
+                  })
+                )}
+              </TabsContent>
+
+              <TabsContent value="history" className="space-y-4">
+                <div className="flex flex-wrap gap-3 justify-end">
+                  <Select value={trainerFilter} onValueChange={setTrainerFilter}>
+                    <SelectTrigger className="w-[200px] rounded-full bg-background/60 backdrop-blur-xl border-border/40">
+                      <SelectValue placeholder="Filter by trainer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All trainers</SelectItem>
+                      {trainers.map((trainer) => (
+                        <SelectItem key={trainer.id} value={trainer.id}>{trainer.name}</SelectItem>
                       ))}
-                      {!loading && filteredSupervisorRequests.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No leave requests match the selected filters.</TableCell>
-                        </TableRow>
-                      ) : null}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </>
-        ) : (          <>
-            <TabsContent value="apply" className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Apply For Leave</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <form className="space-y-4" onSubmit={handleSubmitRequest}>
-                      <div className="grid gap-4 sm:grid-cols-2">
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[160px] rounded-full bg-background/60 backdrop-blur-xl border-border/40">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-3">
+                  {loading ? (
+                    <div className="rounded-3xl border border-border/40 bg-card/40 backdrop-blur-xl p-12 text-center text-sm text-muted-foreground">
+                      Loading…
+                    </div>
+                  ) : filteredSupervisorRequests.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-xl p-12 text-center text-sm text-muted-foreground">
+                      No leave requests match the selected filters.
+                    </div>
+                  ) : (
+                    filteredSupervisorRequests.map((record, idx) => {
+                      const trainerName = trainers.find((t) => String(t.id) === String(record.trainerId))?.name || record.trainerId;
+                      return (
+                        <LeaveRow
+                          key={record.id}
+                          record={record}
+                          trainerName={trainerName}
+                          statusStyle={statusStyles[record.status] || statusStyles.Pending}
+                          delay={idx * 40}
+                          actions={
+                            record.status === "Pending" ? (
+                              <>
+                                <Button size="sm" variant="ghost" className="rounded-full text-emerald-600 hover:bg-emerald-500/10" onClick={() => handleDecision(record, "Approved")} disabled={saving}>
+                                  Approve
+                                </Button>
+                                <Button size="sm" variant="ghost" className="rounded-full text-rose-600 hover:bg-rose-500/10" onClick={() => handleDecision(record, "Rejected")} disabled={saving}>
+                                  Decline
+                                </Button>
+                              </>
+                            ) : null
+                          }
+                        />
+                      );
+                    })
+                  )}
+                </div>
+              </TabsContent>
+            </>
+          ) : (
+            <>
+              <TabsContent value="apply" className="space-y-6">
+                <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                  {/* Form card — soft glass */}
+                  <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-card/60 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.08)] animate-fade-scale" style={{ animationFillMode: "backwards" }}>
+                    <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-gradient-to-br from-primary/15 to-transparent blur-3xl" />
+                    <div className="relative p-8">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                          <Plane className="h-4 w-4 text-primary" />
+                        </div>
                         <div>
-                          <Label htmlFor="leave-type">Leave type</Label>
-                          <Select value={form.type} onValueChange={(value) => setForm((current) => ({ ...current, type: value }))}>
-                            <SelectTrigger id="leave-type"><SelectValue /></SelectTrigger>
+                          <h2 className="text-lg font-semibold text-foreground">New request</h2>
+                          <p className="text-xs text-muted-foreground">Tell us when and why</p>
+                        </div>
+                      </div>
+
+                      <form className="space-y-5" onSubmit={handleSubmitRequest}>
+                        <div className="space-y-2">
+                          <Label htmlFor="leave-type" className="text-xs font-medium text-muted-foreground">Leave type</Label>
+                          <Select value={form.type} onValueChange={(value) => setForm((c) => ({ ...c, type: value }))}>
+                            <SelectTrigger id="leave-type" className="h-11 rounded-2xl bg-background/60 backdrop-blur border-border/40">
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
-                              {leaveTypes.map((leaveType) => (
-                                <SelectItem key={leaveType} value={leaveType}>{leaveType}</SelectItem>
+                              {leaveTypes.map((lt) => (
+                                <SelectItem key={lt} value={lt}>{lt}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
-                        <div>
-                          <Label htmlFor="leave-owner">Trainer</Label>
-                          <Input id="leave-owner" value={trainerIdentity.trainerName || user?.name || "Trainer"} disabled />
-                        </div>
-                      </div>
 
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <Label htmlFor="leave-start">Start date</Label>
-                          <Input id="leave-start" type="date" value={form.startDate} onChange={(event) => setForm((current) => ({ ...current, startDate: event.target.value }))} />
-                        </div>
-                        <div>
-                          <Label htmlFor="leave-end">End date</Label>
-                          <Input id="leave-end" type="date" value={form.endDate} onChange={(event) => setForm((current) => ({ ...current, endDate: event.target.value }))} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="leave-notes">Notes for supervisor</Label>
-                        <Textarea id="leave-notes" placeholder="Add context, coverage details, or anything your supervisor should know." value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
-                      </div>
-
-                      <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                        Requests land in the supervisor approval queue and also post to the notification panel so the decision is easy to track after login.
-                      </div>
-
-                      <Button type="submit" disabled={saving || loading} className="w-full sm:w-auto">
-                        <Send className="mr-2 h-4 w-4" /> Submit Request
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-
-                <PremiumCard>
-                  <PremiumCardHeader>
-                    <PremiumCardTitle className="text-base font-bold">Upcoming And Recent Status</PremiumCardTitle>
-                  </PremiumCardHeader>
-                  <PremiumCardContent className="space-y-3">
-                    {loading ? <p className="text-sm text-muted-foreground">Loading your requests...</p> : null}
-                    {!loading && myRequests.length === 0 ? (
-                      <p className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
-                        No leave requests yet. Your submitted requests will show up here with approval status.
-                      </p>
-                    ) : null}
-                    {!loading && myRequests.slice(0, 4).map((record) => (
-                      <div key={record.id} className="rounded-2xl border border-border/70 bg-background/70 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">{record.type}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{formatLeaveDates(record)}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{getDurationLabel(record)}</p>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="leave-start" className="text-xs font-medium text-muted-foreground">From</Label>
+                            <Input
+                              id="leave-start"
+                              type="date"
+                              value={form.startDate}
+                              onChange={(e) => setForm((c) => ({ ...c, startDate: e.target.value }))}
+                              className="h-11 rounded-2xl bg-background/60 backdrop-blur border-border/40"
+                            />
                           </div>
-                          <Badge className={statusStyles[record.status] || statusStyles.Pending}>{record.status}</Badge>
+                          <div className="space-y-2">
+                            <Label htmlFor="leave-end" className="text-xs font-medium text-muted-foreground">To</Label>
+                            <Input
+                              id="leave-end"
+                              type="date"
+                              value={form.endDate}
+                              onChange={(e) => setForm((c) => ({ ...c, endDate: e.target.value }))}
+                              className="h-11 rounded-2xl bg-background/60 backdrop-blur border-border/40"
+                            />
+                          </div>
                         </div>
-                        {record.notes ? <p className="mt-3 text-sm text-muted-foreground">{record.notes}</p> : null}
-                      </div>
-                    ))}
-                  </PremiumCardContent>
-                </PremiumCard>
-              </div>
-            </TabsContent>
 
-            <TabsContent value="history" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">My Leave Requests</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Dates</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Notes</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">Loading your requests...</TableCell>
-                        </TableRow>
-                      ) : null}
-                      {!loading && myRequests.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">{record.type}</TableCell>
-                          <TableCell>
-                            <div className="text-sm">{formatLeaveDates(record)}</div>
-                            <div className="text-xs text-muted-foreground">{getDurationLabel(record)}</div>
-                          </TableCell>
-                          <TableCell><Badge className={statusStyles[record.status] || statusStyles.Pending}>{record.status}</Badge></TableCell>
-                          <TableCell className="max-w-[260px] text-sm text-muted-foreground">{record.notes || "No notes provided"}</TableCell>
-                          <TableCell className="text-right">
-                            {record.status === "Pending" ? (
-                              <Button variant="outline" size="sm" onClick={() => handleCancelRequest(record)} disabled={saving}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Cancel
-                              </Button>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">{record.status === "Approved" ? "Confirmed" : "Closed"}</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {!loading && myRequests.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">No leave requests available for your login.</TableCell>
-                        </TableRow>
-                      ) : null}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
+                        {formDuration > 0 ? (
+                          <div className="flex items-center gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 animate-fade-scale">
+                            <CalendarIcon className="h-4 w-4 text-primary" />
+                            <p className="text-sm text-foreground">
+                              <span className="font-semibold tabular-nums">{formDuration}</span>
+                              <span className="text-muted-foreground"> day{formDuration === 1 ? "" : "s"} of leave</span>
+                            </p>
+                          </div>
+                        ) : null}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="leave-notes" className="text-xs font-medium text-muted-foreground">Notes for supervisor</Label>
+                          <Textarea
+                            id="leave-notes"
+                            placeholder="Add coverage details or context…"
+                            value={form.notes}
+                            onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))}
+                            className="min-h-[100px] rounded-2xl bg-background/60 backdrop-blur border-border/40 resize-none"
+                          />
+                        </div>
+
+                        <Button
+                          type="submit"
+                          disabled={saving || loading}
+                          className="w-full h-12 rounded-2xl bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10 hover:shadow-xl hover:shadow-foreground/20 transition-all duration-300 group"
+                        >
+                          <Send className="mr-2 h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                          {saving ? "Submitting…" : "Submit request"}
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+
+                  {/* Recent status panel */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-2">
+                      <h3 className="text-sm font-semibold text-foreground">Recent activity</h3>
+                      <span className="text-xs text-muted-foreground">{myRequests.length} total</span>
+                    </div>
+                    {loading ? (
+                      <div className="rounded-3xl border border-border/40 bg-card/40 backdrop-blur-xl p-8 text-center text-sm text-muted-foreground">
+                        Loading…
+                      </div>
+                    ) : myRequests.length === 0 ? (
+                      <div className="rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-xl p-10 text-center animate-fade-scale">
+                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/15 to-primary/5 mb-3">
+                          <CalendarOff className="h-6 w-6 text-primary" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground">Nothing here yet</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Your submitted requests will appear here.</p>
+                      </div>
+                    ) : (
+                      myRequests.slice(0, 4).map((record, idx) => (
+                        <LeaveRow
+                          key={record.id}
+                          record={record}
+                          statusStyle={statusStyles[record.status] || statusStyles.Pending}
+                          delay={idx * 60}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="history" className="space-y-3">
+                {loading ? (
+                  <div className="rounded-3xl border border-border/40 bg-card/40 backdrop-blur-xl p-12 text-center text-sm text-muted-foreground">
+                    Loading…
+                  </div>
+                ) : myRequests.length === 0 ? (
+                  <div className="rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-xl p-16 text-center">
+                    <p className="text-sm text-muted-foreground">No leave requests available for your login.</p>
+                  </div>
+                ) : (
+                  myRequests.map((record, idx) => (
+                    <LeaveRow
+                      key={record.id}
+                      record={record}
+                      statusStyle={statusStyles[record.status] || statusStyles.Pending}
+                      delay={idx * 40}
+                      actions={
+                        record.status === "Pending" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-full text-rose-600 hover:bg-rose-500/10"
+                            onClick={() => handleCancelRequest(record)}
+                            disabled={saving}
+                          >
+                            <Trash2 className="mr-1.5 h-4 w-4" /> Cancel
+                          </Button>
+                        ) : null
+                      }
+                    />
+                  ))
+                )}
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
+      </div>
     </div>
   );
 }
