@@ -1,24 +1,36 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store/app-store";
-import { Bell, CalendarDays, Users, ClipboardCheck, MessageSquare, FileSpreadsheet } from "lucide-react";
+import {
+  Bell,
+  CalendarDays,
+  CalendarOff,
+  Users,
+  ClipboardCheck,
+  MessageSquare,
+  FileSpreadsheet,
+} from "lucide-react";
 import { differenceInDays, format, parseISO, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { api } from "@/data/api";
-
-const READ_STORAGE_KEY = "tms.notifications.read_ids";
+import {
+  LEAVE_NOTIFICATIONS_UPDATED_EVENT,
+  isLeaveNotificationVisibleToUser,
+  loadLeaveNotifications,
+} from "@/lib/leave-notifications";
 
 const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
+const buildReadStorageKey = (user) => `tms.notifications.read_ids.${normalizeId(user?.portalId || user?.trainerId || user?.id || user?.role || "guest")}`;
 
-const loadReadIds = () => {
+const loadReadIds = (user) => {
   if (typeof window === "undefined") {
     return [];
   }
 
   try {
-    const raw = window.localStorage.getItem(READ_STORAGE_KEY);
+    const raw = window.localStorage.getItem(buildReadStorageKey(user));
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -26,12 +38,12 @@ const loadReadIds = () => {
   }
 };
 
-const saveReadIds = (ids) => {
+const saveReadIds = (user, ids) => {
   if (typeof window === "undefined") {
     return;
   }
 
-  window.localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(ids));
+  window.localStorage.setItem(buildReadStorageKey(user), JSON.stringify(ids));
 };
 
 const mapSessionRecord = (session) => ({
@@ -78,7 +90,8 @@ export function NotificationPanel({ collapsed }) {
   const [trainings, setTrainings] = useState([]);
   const [feedbackItems, setFeedbackItems] = useState([]);
   const [imports, setImports] = useState([]);
-  const [readIds, setReadIds] = useState(() => loadReadIds());
+  const [leaveNotifications, setLeaveNotifications] = useState(() => loadLeaveNotifications());
+  const [readIds, setReadIds] = useState(() => loadReadIds(user));
 
   const isSupervisor = user?.role === "supervisor" || user?.role === "admin";
   const trainerId = normalizeId(user?.trainerId || user?.id);
@@ -90,7 +103,6 @@ export function NotificationPanel({ collapsed }) {
     const loadNotifications = async () => {
       try {
         const trainerQuery = !isSupervisor && trainerId ? { trainer_id: trainerId } : {};
-
         const requests = [
           api.scheduledTrainings.sessions(trainerQuery),
           api.scheduledTrainings.list(trainerQuery),
@@ -98,8 +110,6 @@ export function NotificationPanel({ collapsed }) {
 
         if (!isSupervisor && trainerId) {
           requests.push(api.feedback.list({ trainer_id: trainerId }));
-        } else if (isSupervisor) {
-          requests.push(Promise.resolve({ feedback: [] }));
         } else {
           requests.push(Promise.resolve({ feedback: [] }));
         }
@@ -116,17 +126,13 @@ export function NotificationPanel({ collapsed }) {
           return;
         }
 
-        setSessions(
-          Array.isArray(sessionsResponse?.sessions) ? sessionsResponse.sessions.map(mapSessionRecord) : []
-        );
+        setSessions(Array.isArray(sessionsResponse?.sessions) ? sessionsResponse.sessions.map(mapSessionRecord) : []);
         setTrainings(
           Array.isArray(trainingsResponse?.scheduled_trainings)
             ? trainingsResponse.scheduled_trainings.map(mapTrainingRecord)
             : []
         );
-        setFeedbackItems(
-          Array.isArray(feedbackResponse?.feedback) ? feedbackResponse.feedback.map(mapFeedbackRecord) : []
-        );
+        setFeedbackItems(Array.isArray(feedbackResponse?.feedback) ? feedbackResponse.feedback.map(mapFeedbackRecord) : []);
         setImports(Array.isArray(importsResponse?.imports) ? importsResponse.imports.map(mapImportRecord) : []);
       } catch {
         if (!isMounted) {
@@ -146,10 +152,33 @@ export function NotificationPanel({ collapsed }) {
       isMounted = false;
     };
   }, [isSupervisor, trainerId]);
+  useEffect(() => {
+    setReadIds(loadReadIds(user));
+  }, [user?.id, user?.portalId, user?.trainerId, user?.role]);
 
   useEffect(() => {
-    saveReadIds(readIds);
-  }, [readIds]);
+    saveReadIds(user, readIds);
+  }, [readIds, user]);
+
+  useEffect(() => {
+    const refreshLeaveNotifications = () => {
+      setLeaveNotifications(loadLeaveNotifications());
+    };
+
+    refreshLeaveNotifications();
+
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    window.addEventListener(LEAVE_NOTIFICATIONS_UPDATED_EVENT, refreshLeaveNotifications);
+    window.addEventListener("storage", refreshLeaveNotifications);
+
+    return () => {
+      window.removeEventListener(LEAVE_NOTIFICATIONS_UPDATED_EVENT, refreshLeaveNotifications);
+      window.removeEventListener("storage", refreshLeaveNotifications);
+    };
+  }, []);
 
   const allNotifications = useMemo(() => {
     const notifications = [];
@@ -244,13 +273,25 @@ export function NotificationPanel({ collapsed }) {
       });
     }
 
+    leaveNotifications
+      .filter((notification) => isLeaveNotificationVisibleToUser(notification, user))
+      .forEach((notification) => {
+        notifications.push({
+          ...notification,
+          icon: CalendarOff,
+          target: notification.target || {
+            pathname: "/leave-requests",
+          },
+        });
+      });
+
     return notifications
       .map((notification) => ({
         ...notification,
         read: readIds.includes(notification.id),
       }))
       .sort((left, right) => String(right.date || "").localeCompare(String(left.date || "")));
-  }, [feedbackItems, imports, isSupervisor, readIds, sessions, today, trainings]);
+  }, [feedbackItems, imports, isSupervisor, leaveNotifications, readIds, sessions, today, trainings, user]);
 
   const unreadCount = allNotifications.filter((notification) => !notification.read).length;
 
@@ -289,7 +330,6 @@ export function NotificationPanel({ collapsed }) {
       return [...ids];
     });
   };
-
   return (
     <Popover>
       <PopoverTrigger asChild>

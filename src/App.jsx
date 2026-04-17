@@ -31,6 +31,7 @@ import AvailabilityPage from "./pages/AvailabilityPage";
 import TasksPage from "./pages/TasksPage";
 import MaterialsPage from "./pages/MaterialsPage";
 import CertificationsPage from "./pages/CertificationsPage";
+import LeaveRequestsPage from "./pages/LeaveRequestsPage";
 import { RequireAuth } from "./components/auth/RequireAuth";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
                     <Route path="/students/:id" element={<StudentDetailPage />} />
                     <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/attendance" element={<AttendancePage />} />
+                    <Route path="/leave-requests" element={<LeaveRequestsPage />} />
                     <Route path="/observations" element={<ObservationsPage />} />
                     <Route path="/progress" element={<PerformancePage />} />
                     <Route path="/trainers" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainersPage /></RequireAuth>} />
