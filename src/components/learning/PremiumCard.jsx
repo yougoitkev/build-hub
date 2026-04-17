@@ -11,8 +11,9 @@ export function PremiumCard({
     return (
         <Card
             className={cn(
-                "group transition-all duration-300 border-border bg-card shadow-sm",
-                hoverable && "hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5 cursor-pointer",
+                "group rounded-3xl border-border/40 bg-card/60 backdrop-blur-xl",
+                "shadow-[0_8px_32px_-12px_rgba(0,0,0,0.06)] transition-all duration-500",
+                hoverable && "hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.12)] hover:border-border/70 hover:-translate-y-0.5",
                 className
             )}
             {...props}
@@ -39,5 +40,5 @@ export function PremiumCardContent({ children, className, ...props }) {
 }
 
 export function PremiumCardFooter({ children, className, ...props }) {
-    return <CardFooter className={cn("pt-4 border-t border-border/50", className)} {...props}>{children}</CardFooter>;
+    return <CardFooter className={cn("pt-4 border-t border-border/40", className)} {...props}>{children}</CardFooter>;
 }
