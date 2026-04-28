@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAppStore } from "@/store/app-store";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -250,34 +251,34 @@ export default function TrainerFormPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-12">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-primary/5 p-5 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <UserCog className="h-6 w-6 text-primary" /> Trainer Form
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Create and manage trainer records</p>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          <div className="relative flex-1 sm:flex-none">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search trainers..." className="pl-9 w-full sm:w-[200px] h-9" />
+      <PageHeader
+        icon={UserCog}
+        eyebrow="People"
+        title="Trainer Form"
+        description="Create and manage trainer records."
+        actions={
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            <div className="relative flex-1 sm:flex-none">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search trainers..." className="pl-9 w-full sm:w-[200px] h-9" />
+            </div>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[140px] h-9 bg-background">
+                <ArrowUpDown className="h-3 w-3 mr-1" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Recently Added</SelectItem>
+                <SelectItem value="name-asc">Name A-Z</SelectItem>
+                <SelectItem value="name-desc">Name Z-A</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={openNew} className="rounded-full px-5 shrink-0 h-9">
+              <Plus className="h-4 w-4 mr-1.5" /> Add Trainer
+            </Button>
           </div>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[140px] h-9 bg-background">
-              <ArrowUpDown className="h-3 w-3 mr-1" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Recently Added</SelectItem>
-              <SelectItem value="name-asc">Name A-Z</SelectItem>
-              <SelectItem value="name-desc">Name Z-A</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={openNew} className="rounded-full px-5 shrink-0 h-9">
-            <Plus className="h-4 w-4 mr-1.5" /> Add Trainer
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {isLoadingData && <p className="text-sm text-muted-foreground">Loading data...</p>}
       {!isLoadingData && fetchError && <p className="text-sm text-destructive">Error in fetching data</p>}

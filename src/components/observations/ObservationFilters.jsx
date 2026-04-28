@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { CalendarIcon, Search, Filter } from "lucide-react";
+import { CalendarIcon, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,10 +23,9 @@ export function ObservationFilters({
   const getEnrolledCount = getEnrolledCountProp ?? storeGetEnrolledCount;
 
   return (
-    <div className="flex flex-wrap gap-4 items-end bg-card p-4 rounded-xl border border-border/50 shadow-sm animate-fade-in">
-      {/* Date Picker - Primary */}
+    <div className="surface-shell flex flex-wrap items-end gap-4 p-4 md:p-5 animate-fade-in">
       <div className="min-w-[220px]">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+        <label className="section-kicker mb-2 block">
           Date <span className="text-destructive">*</span>
         </label>
         <Popover>
@@ -35,11 +33,12 @@ export function ObservationFilters({
             <Button
               variant="outline"
               className={cn(
-                "w-full h-11 justify-start text-left font-normal border-border/50",
+                "h-11 w-full justify-start text-left font-normal",
+                selectedDate && "border-primary/20 bg-primary/[0.08]",
                 !selectedDate && "text-muted-foreground"
               )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon className="icon-neutral mr-2 h-4 w-4" />
               {selectedDate ? format(selectedDate, "EEEE, MMM dd, yyyy") : <span>Select observation date...</span>}
             </Button>
           </PopoverTrigger>
@@ -55,11 +54,10 @@ export function ObservationFilters({
         </Popover>
       </div>
 
-      {/* Training */}
       <div className="min-w-[220px]">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">Training</label>
+        <label className="section-kicker mb-2 block">Training</label>
         <Select value={selectedTraining} onValueChange={onTrainingChange}>
-          <SelectTrigger className="h-11 bg-background">
+          <SelectTrigger className={cn("h-11", selectedTraining !== "all" && "border-primary/20 bg-primary/[0.08]")}>
             <SelectValue placeholder="All Trainings" />
           </SelectTrigger>
           <SelectContent>
@@ -68,7 +66,7 @@ export function ObservationFilters({
               <SelectItem key={t.id} value={t.id}>
                 <div className="flex justify-between items-center w-full min-w-[180px]">
                   <span>{t.title}</span>
-                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold ml-2">
+                  <span className="ml-2 rounded-[var(--radius-field)] border border-primary/15 bg-primary/[0.08] px-1.5 py-0.5 text-[10px] font-bold text-primary">
                     {getEnrolledCount(t.id)}
                   </span>
                 </div>
@@ -78,14 +76,13 @@ export function ObservationFilters({
         </Select>
       </div>
 
-      {/* Search */}
       <div className="min-w-[200px] flex-1">
-        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">Search Student</label>
+        <label className="section-kicker mb-2 block">Search Student</label>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="icon-neutral absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             placeholder="Search by name or ID..."
-            className="pl-9 h-11"
+            className="h-11 pl-9"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
           />

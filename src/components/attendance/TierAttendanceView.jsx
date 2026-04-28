@@ -46,7 +46,7 @@ export function TierAttendanceView({ studentName, dayValues, overrides = {}, imp
 
           return (
             <Collapsible key={tier.id} open={isOpen} onOpenChange={() => toggleTier(tier.id)}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg hover:bg-muted/50 transition-colors group text-left">
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-[var(--radius-field)] p-3 text-left transition-colors group hover:bg-secondary/60">
                 <div className="flex items-center gap-2">
                   <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", isOpen && "rotate-90")} />
                   <span className="text-sm font-semibold text-foreground">{tier.label}</span>
@@ -55,8 +55,8 @@ export function TierAttendanceView({ studentName, dayValues, overrides = {}, imp
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="text-sm font-mono font-bold text-foreground w-16 text-right">{tierTotal}/{maxHours}h</span>
                 </div>
@@ -84,7 +84,7 @@ export function TierAttendanceView({ studentName, dayValues, overrides = {}, imp
                           />
                         </div>
                         {hasOverride && (
-                          <Shield className="h-3 w-3 text-accent" />
+                          <Shield className="h-3 w-3 text-primary" />
                         )}
                       </div>
                     );

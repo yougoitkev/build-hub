@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import { getTierForDay, computeSummary } from "@/lib/tier-config";
 import { MatrixCell } from "./MatrixCell";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, parseISO } from "date-fns";
+import { StudentAvatar } from "@/components/StudentAvatar";
 
 export function AttendanceMatrix({
     students,
-    attendanceData, // Map studentId -> tieredRecord
-    selectedDays = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // Default range for demo if none selected
+    attendanceData,
+    selectedDays = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     trainingName = "",
     dayLabels = {},
     overrides = {},
@@ -15,7 +15,6 @@ export function AttendanceMatrix({
     onRemarksEdit,
     readOnly = false
 }) {
-    // Group days by tier for the header
     const tierGroups = useMemo(() => {
         const groups = [];
         let currentTier = null;
@@ -36,31 +35,29 @@ export function AttendanceMatrix({
     }, [selectedDays]);
 
     return (
-        <div className="relative border border-border/50 rounded-2xl bg-card shadow-xl shadow-foreground/5 overflow-hidden animate-fade-in">
-            <div className="overflow-auto max-h-[70vh]">
+        <div className="table-shell relative animate-fade-in">
+            <div className="max-h-[70vh] overflow-auto">
                 <table className="w-full border-collapse">
-                    <thead className="sticky top-0 z-30 bg-background/95 backdrop-blur-md">
-                        {/* Tier Group Labels */}
+                    <thead className="sticky top-0 z-30 bg-card/95 backdrop-blur-md">
                         <tr>
-                            <th className="sticky left-0 z-40 bg-background/95 border-b border-border/50 min-w-[280px]"></th>
+                            <th className="sticky left-0 z-40 min-w-[280px] border-b border-border/50 bg-card/95"></th>
                             {tierGroups.map((group, idx) => (
                                 <th
                                     key={group.tier.id + idx}
                                     colSpan={group.days.length}
-                                    className="px-4 py-2 text-[10px] uppercase tracking-widest font-black text-primary/60 border-b border-l border-border/10 bg-primary/5"
+                                    className="border-b border-l border-border/10 bg-primary/[0.06] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-primary/80"
                                 >
                                     {trainingName || group.tier.label}
                                 </th>
                             ))}
-                            <th className="border-b border-border/50 bg-accent/5 p-2 min-w-[120px]"></th>
+                            <th className="min-w-[120px] border-b border-border/50 bg-secondary/80 p-2"></th>
                         </tr>
-                        {/* Day Numbers */}
-                        <tr className="bg-background/95 shadow-sm">
-                            <th className="sticky left-0 z-40 bg-background/95 border-b border-border/50 p-4 text-left font-bold text-sm text-foreground">
+                        <tr className="bg-card/95 shadow-sm">
+                            <th className="sticky left-0 z-40 border-b border-border/50 bg-card/95 p-4 text-left text-sm font-bold text-foreground">
                                 Student Metadata
                             </th>
                             {selectedDays.map((day) => (
-                                <th key={day} className="border-b border-l border-border/10 p-2 min-w-[120px] text-center">
+                                <th key={day} className="min-w-[120px] border-b border-l border-border/10 p-2 text-center">
                                     <div className="flex flex-col items-center">
                                         <span className="text-[10px] font-bold text-muted-foreground/60">
                                             {dayLabels[day] ? format(parseISO(dayLabels[day]), "MMM") : "DAY"}
@@ -76,8 +73,8 @@ export function AttendanceMatrix({
                                     </div>
                                 </th>
                             ))}
-                            <th className="border-b border-l border-border/10 p-2 min-w-[120px] text-center bg-accent/5">
-                                <span className="text-[10px] font-bold text-accent">SUMMARY</span>
+                            <th className="min-w-[120px] border-b border-l border-border/10 bg-secondary/80 p-2 text-center">
+                                <span className="section-kicker text-muted-foreground/80">Summary</span>
                             </th>
                         </tr>
                     </thead>
@@ -87,20 +84,19 @@ export function AttendanceMatrix({
                             const summary = computeSummary(record.dayValues || {});
 
                             return (
-                                <tr key={student.id} className="hover:bg-muted/5 group transition-colors">
-                                    {/* Sticky Student Profile Header */}
-                                    <td className="sticky left-0 z-20 bg-background/95 group-hover:bg-muted/10 transition-colors border-r border-border/10 p-4">
+                                <tr key={student.id} className="group transition-colors hover:bg-secondary/40">
+                                    <td className="sticky left-0 z-20 border-r border-border/10 bg-card/95 p-4 transition-colors group-hover:bg-secondary/45">
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="h-10 w-10 border-2 border-primary/10 shadow-sm">
-                                                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.id}`} />
-                                                <AvatarFallback>{student.firstName[0]}{student.lastName[0]}</AvatarFallback>
-                                            </Avatar>
+                                            <StudentAvatar 
+                                                firstName={student.firstName} 
+                                                lastName={student.lastName} 
+                                            />
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors cursor-pointer">
+                                                <p className="truncate text-sm font-bold text-foreground">
                                                     {student.firstName} {student.lastName}
                                                 </p>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-1.5 rounded uppercase tracking-wider">
+                                                <div className="mt-0.5 flex items-center gap-2">
+                                                    <span className="rounded-[var(--radius-field)] border border-border/60 bg-muted/70 px-1.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider text-muted-foreground">
                                                         {student.empId}
                                                     </span>
                                                     <span className="text-[10px] font-medium text-muted-foreground">
@@ -111,7 +107,6 @@ export function AttendanceMatrix({
                                         </div>
                                     </td>
 
-                                    {/* Matrix Cells */}
                                     {selectedDays.map((day) => {
                                         const dayKey = `day_${day}`;
                                         const hasOverride = !!record.overrides?.[dayKey];
@@ -131,17 +126,16 @@ export function AttendanceMatrix({
                                         );
                                     })}
 
-                                    {/* Row Summary */}
-                                    <td className="border-l border-border/10 bg-accent/[0.02] p-4">
+                                    <td className="border-l border-border/10 bg-secondary/45 p-3">
                                         <div className="flex flex-col gap-1 text-[10px]">
-                                            <div className="flex justify-between items-center bg-background/50 p-1 px-2 rounded">
-                                                <span className="text-muted-foreground font-medium uppercase tracking-tighter">Total Hrs</span>
+                                            <div className="flex items-center justify-between rounded-[var(--radius-field)] border border-border/60 bg-background/85 p-1.5 px-2">
+                                                <span className="font-medium uppercase tracking-tighter text-muted-foreground">Total Hrs</span>
                                                 <span className="font-black text-foreground">
                                                     {summary.hoursCompleted}h
                                                 </span>
                                             </div>
-                                            <div className="flex justify-between items-center bg-background/50 p-1 px-2 rounded">
-                                                <span className="text-muted-foreground font-medium uppercase tracking-tighter">Abs/NCNS</span>
+                                            <div className="flex items-center justify-between rounded-[var(--radius-field)] border border-border/60 bg-background/85 p-1.5 px-2">
+                                                <span className="font-medium uppercase tracking-tighter text-muted-foreground">Abs/NCNS</span>
                                                 <span className="font-bold text-destructive">
                                                     {summary.totalAbsences + summary.ncnsCount}
                                                 </span>
@@ -157,4 +151,3 @@ export function AttendanceMatrix({
         </div>
     );
 }
-

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/store/app-store";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +22,8 @@ import {
   resolveSupervisorForUser,
   toApiId,
 } from "@/lib/phase-backend";
+import { deriveObservationPerformanceStatus, normalizeObservationScore } from "@/lib/tms-status";
+import { StatusBadge } from "@/components/StatusBadge";
 
 const buildDefaultRatings = () => Object.fromEntries(OBSERVATION_CATEGORIES.map((category) => [category, 5]));
 const buildDefaultComments = () => Object.fromEntries(OBSERVATION_CATEGORIES.map((category) => [category, ""]));
@@ -92,14 +95,20 @@ export default function TrainerObservationsPage() {
     }
 
     return OBSERVATION_CATEGORIES.map((category) => {
-      const scores = trainerObs.map((observation) => observation.ratings[category]).filter((score) => score !== undefined && score !== null);
+      const scores = trainerObs
+        .map((observation) => observation.ratings[category])
+        .filter((score) => score !== undefined && score !== null)
+        .map(normalizeObservationScore);
       return {
         category,
         score: scores.length ? Math.round((scores.reduce((total, score) => total + score, 0) / scores.length) * 10) / 10 : 0,
-        fullMark: 10,
+        fullMark: 5,
       };
     });
   }, [trainerObs]);
+
+  const selectedAverage = normalizeObservationScore(selectedSummary?.averageRating || 0);
+  const selectedAverageStatus = deriveObservationPerformanceStatus(selectedAverage);
 
   const loadObservationsForTrainer = async (trainerId) => {
     const [observationsResponse, summaryResponse] = await Promise.all([
@@ -153,44 +162,49 @@ export default function TrainerObservationsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Eye className="h-6 w-6 text-primary" /> Trainer Observation Survey</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Evaluate trainer performance across key categories</p>
-        </div>
-        <Select value={selectedTrainer} onValueChange={setSelectedTrainer}>
-          <SelectTrigger className="w-[220px] bg-background rounded-full"><SelectValue placeholder="Select Trainer" /></SelectTrigger>
-          <SelectContent>
-            {trainers.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <PageHeader
+        icon={Eye}
+        eyebrow="Quality"
+        title="Trainer Observation Survey"
+        description="Evaluate trainer performance across key categories and keep monthly scorecards visible."
+        actions={
+          <Select value={selectedTrainer} onValueChange={setSelectedTrainer}>
+            <SelectTrigger className="h-11 w-[220px] bg-background"><SelectValue placeholder="Select Trainer" /></SelectTrigger>
+            <SelectContent>
+              {trainers.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        }
+      />
 
       {loading ? (
         <div className="py-20 text-center text-muted-foreground">Loading trainer observations...</div>
       ) : selectedTrainer ? (
         <Tabs defaultValue="survey" className="space-y-4">
-          <TabsList className="bg-muted/50 rounded-full p-1">
-            <TabsTrigger value="survey" className="rounded-full gap-1"><Star className="h-3.5 w-3.5" /> New Survey</TabsTrigger>
-            <TabsTrigger value="history" className="rounded-full gap-1"><Eye className="h-3.5 w-3.5" /> History ({trainerObs.length})</TabsTrigger>
-            <TabsTrigger value="summary" className="rounded-full gap-1"><BarChart3 className="h-3.5 w-3.5" /> Summary</TabsTrigger>
+          <TabsList className="w-fit">
+            <TabsTrigger value="survey" className="gap-1.5"><Star className="h-3.5 w-3.5" /> New Survey</TabsTrigger>
+            <TabsTrigger value="history" className="gap-1.5"><Eye className="h-3.5 w-3.5" /> History ({trainerObs.length})</TabsTrigger>
+            <TabsTrigger value="summary" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Summary</TabsTrigger>
           </TabsList>
 
           <TabsContent value="survey" className="space-y-4">
             <PremiumCard>
               <PremiumCardContent className="p-6 space-y-6">
-                <p className="text-sm text-muted-foreground">Rating scale: 1 (Poor) - 10 (Excellent)</p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">Rating scale: 1 (Poor) - 5 (Excellent). Target score: 4.0 / 5.0.</p>
+                  <StatusBadge status="On Track" domain="performance" />
+                </div>
                 {OBSERVATION_CATEGORIES.map((category) => (
                   <div key={category} className="space-y-2 pb-4 border-b border-border/50 last:border-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{category}</span>
-                      <Badge variant="outline" className="font-bold text-primary">{ratings[category]}/10</Badge>
+                    <span className="font-medium text-sm">{category}</span>
+                      <Badge variant="outline" className="border-primary/15 bg-primary/[0.08] font-bold text-primary">{ratings[category]}/5</Badge>
                     </div>
-                    <Slider value={[ratings[category]]} onValueChange={([value]) => setRatings((current) => ({ ...current, [category]: value }))} min={1} max={10} step={1} className="w-full" />
+                    <Slider value={[ratings[category]]} onValueChange={([value]) => setRatings((current) => ({ ...current, [category]: value }))} min={1} max={5} step={1} className="w-full" />
                     <Textarea placeholder={`Comments on ${category}...`} value={comments[category]} onChange={(event) => setComments((current) => ({ ...current, [category]: event.target.value }))} className="min-h-[60px] text-sm" />
                   </div>
                 ))}
-                <Button onClick={handleSubmit} className="w-full rounded-full gap-2" disabled={submitting}>
+                <Button onClick={handleSubmit} className="w-full gap-2" disabled={submitting}>
                   <Send className="h-4 w-4" /> {submitting ? "Submitting..." : "Submit Observation"}
                 </Button>
               </PremiumCardContent>
@@ -208,9 +222,9 @@ export default function TrainerObservationsPage() {
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     {OBSERVATION_CATEGORIES.map((category) => (
-                      <div key={category} className="text-center p-2 rounded-lg bg-muted/30">
+                      <div key={category} className="surface-panel p-2 text-center">
                         <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{category}</p>
-                        <p className="text-lg font-bold text-primary">{observation.ratings[category] || 0}/10</p>
+                        <p className="text-lg font-bold text-primary">{normalizeObservationScore(observation.ratings[category] || 0)}/5</p>
                         {observation.comments[category] && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{observation.comments[category]}</p>}
                       </div>
                     ))}
@@ -225,22 +239,32 @@ export default function TrainerObservationsPage() {
               <PremiumCardContent className="p-6 space-y-6">
                 {selectedSummary ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="rounded-xl bg-muted/30 p-4">
+                    <div className="surface-panel p-4">
                       <p className="text-xs text-muted-foreground">Trainer</p>
                       <p className="text-sm font-bold">{selectedSummary.trainerName}</p>
                     </div>
-                    <div className="rounded-xl bg-muted/30 p-4">
+                    <div className="surface-panel p-4">
                       <p className="text-xs text-muted-foreground">Observations</p>
                       <p className="text-sm font-bold">{selectedSummary.observationCount}</p>
                     </div>
-                    <div className="rounded-xl bg-muted/30 p-4">
+                    <div className="surface-panel p-4">
                       <p className="text-xs text-muted-foreground">Average Rating</p>
-                      <p className="text-sm font-bold">{selectedSummary.averageRating.toFixed(1)}/10</p>
+                      <p className="text-sm font-bold">{selectedAverage.toFixed(1)}/5</p>
                     </div>
-                    <div className="rounded-xl bg-muted/30 p-4">
+                    <div className="surface-panel p-4">
                       <p className="text-xs text-muted-foreground">Latest</p>
                       <p className="text-sm font-bold">{selectedSummary.latestObservationDate || "-"}</p>
                     </div>
+                  </div>
+                ) : null}
+
+                {selectedSummary ? (
+                  <div className="surface-shell-soft flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold">Observation Threshold</p>
+                      <p className="text-xs text-muted-foreground">Client target is 80% or higher across the standardized 1-5 score scale.</p>
+                    </div>
+                    <StatusBadge status={selectedAverageStatus} domain="performance" />
                   </div>
                 ) : null}
 
@@ -250,7 +274,7 @@ export default function TrainerObservationsPage() {
                       <RadarChart data={radarData}>
                         <PolarGrid stroke="hsl(var(--border))" />
                         <PolarAngleAxis dataKey="category" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 10 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 5]} tick={{ fontSize: 10 }} />
                         <Radar name={trainer?.name} dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} strokeWidth={2} />
                         <Tooltip />
                       </RadarChart>
@@ -264,7 +288,7 @@ export default function TrainerObservationsPage() {
           </TabsContent>
         </Tabs>
       ) : (
-        <div className="py-20 text-center text-muted-foreground">
+        <div className="surface-shell py-20 text-center text-muted-foreground">
           <Eye className="h-12 w-12 mx-auto mb-4 opacity-20" />
           <p className="text-lg font-bold text-foreground mb-1">Select a Trainer</p>
           <p className="text-sm">Choose a trainer from the dropdown to begin an observation survey.</p>

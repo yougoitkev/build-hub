@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,6 +10,8 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { toast } from "sonner";
 import { api } from "@/data/api";
 import { normalizeTrainerUtilization } from "@/lib/phase-backend";
+import { deriveUtilizationPerformanceStatus } from "@/lib/tms-status";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export default function TrainerUtilizationPage() {
   const [trainerUtilization, setTrainerUtilization] = useState([]);
@@ -76,20 +79,22 @@ export default function TrainerUtilizationPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><BarChart3 className="h-6 w-6 text-primary" /> Trainer Utilization</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Monitor trainer billed hours vs available hours</p>
-        </div>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-[150px] bg-background rounded-full"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-            <SelectItem value="quarter">This Quarter</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        eyebrow="Productivity"
+        title="Trainer Utilization"
+        description="Monitor billed vs available hours with the shared productivity threshold: 80% target, 60% warning floor."
+        actions={
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[150px] bg-background rounded-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="quarter">This Quarter</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -148,6 +153,7 @@ export default function TrainerUtilizationPage() {
             <TableBody>
               {trainerUtilization.map((trainer) => {
                 const utilization = trainer.availableHours ? Math.round((trainer.billedHours / trainer.availableHours) * 100) : 0;
+                const performanceStatus = deriveUtilizationPerformanceStatus(utilization);
                 return (
                   <TableRow key={trainer.id} className="cursor-pointer hover:bg-muted/20" onClick={() => setDrillDownTrainer(trainer.trainerId)}>
                     <TableCell className="font-medium">{trainer.trainerName}</TableCell>
@@ -155,9 +161,7 @@ export default function TrainerUtilizationPage() {
                     <TableCell className="text-center">{trainer.availableHours}</TableCell>
                     <TableCell className={cn("text-center font-bold", getStatusClass(utilization))}>{utilization}%</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className={cn("font-bold", getStatusClass(utilization))}>
-                        {utilization >= 80 ? "On Track" : utilization >= 60 ? "Warning" : "Below Target"}
-                      </Badge>
+                      <StatusBadge status={performanceStatus} domain="performance" className="font-bold" />
                     </TableCell>
                   </TableRow>
                 );

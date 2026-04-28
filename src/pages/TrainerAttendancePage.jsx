@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store/app-store";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -21,23 +23,24 @@ import { downloadBlob, normalizeTrainer, normalizeTrainerAttendanceRecord, norma
 import { leaveTypes } from "@/lib/phase3-mock-data";
 
 const STATUS_COLORS = {
-  Present: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400",
+  Present: "border border-primary/20 bg-primary/[0.08] text-primary",
   Absent: "bg-destructive/20 text-destructive",
-  Late: "bg-amber-500/20 text-amber-700 dark:text-amber-400",
-  Leave: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
-  Holiday: "bg-muted text-muted-foreground",
+  Late: "border border-border/60 bg-secondary/80 text-foreground",
+  Leave: "border border-primary/10 bg-accent text-accent-foreground",
+  Holiday: "border border-border/60 bg-muted text-muted-foreground",
 };
 
 const STATUS_ABBR = { Present: "P", Absent: "A", Late: "L", Leave: "Lv", Holiday: "H" };
 const ATTENDANCE_STATUSES = ["Present", "Absent", "Late", "Leave"];
 
 const leaveStatusColors = {
-  Approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-  Pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  Approved: "border-primary/15 bg-primary/[0.08] text-primary",
+  Pending: "border-border/60 bg-secondary/80 text-foreground",
   Rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };
 
 export default function TrainerAttendancePage() {
+  const navigate = useNavigate();
   const user = useAppStore((state) => state.user);
   const [trainers, setTrainers] = useState([]);
   const [trainerAttendance, setTrainerAttendance] = useState([]);
@@ -95,7 +98,7 @@ export default function TrainerAttendancePage() {
     return () => { cancelled = true; };
   }, [currentDate, dateRange, viewMode]);
 
-  const navigate = (direction) => {
+  const shiftDateWindow = (direction) => {
     if (viewMode === "week") {
       setCurrentDate(direction === 1 ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1));
       return;
@@ -264,20 +267,23 @@ export default function TrainerAttendancePage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-full mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ClipboardCheck className="h-6 w-6 text-primary" /> Trainer Attendance & Availability
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Unified view of attendance records and leave management</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button variant="outline" size="sm" className="rounded-full gap-2" onClick={() => { setEditingLeave(null); setNewLeave({ trainerId: "", type: "Annual Leave", startDate: "", endDate: "", notes: "" }); setShowLeaveDialog(true); }}>
-            <Plus className="h-4 w-4" /> Add Leave
-          </Button>
-          <Button variant="outline" onClick={exportCSV} className="rounded-full gap-2"><Download className="h-4 w-4" /> Export</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={ClipboardCheck}
+        eyebrow="Trainer Ops"
+        title="Trainer Attendance & Availability"
+        description="Unified view of attendance records, weekly absence tracking, and leave management."
+        actions={
+          <>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => { setEditingLeave(null); setNewLeave({ trainerId: "", type: "Annual Leave", startDate: "", endDate: "", notes: "" }); setShowLeaveDialog(true); }}>
+              <Plus className="h-4 w-4" /> Add Leave
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/availability")}>
+              <CalendarOff className="h-4 w-4" /> Availability View
+            </Button>
+            <Button variant="outline" onClick={exportCSV} className="gap-2"><Download className="h-4 w-4" /> Export</Button>
+          </>
+        }
+      />
 
       <Tabs defaultValue="attendance">
         <TabsList>
@@ -286,27 +292,27 @@ export default function TrainerAttendancePage() {
         </TabsList>
 
         <TabsContent value="attendance" className="space-y-4">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="surface-shell flex flex-wrap items-center gap-3 p-4">
             <Select value={viewMode} onValueChange={setViewMode}>
-              <SelectTrigger className="w-[120px] bg-background rounded-full"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[120px] bg-background"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="week">Week</SelectItem>
                 <SelectItem value="month">Month</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="rounded-full"><ChevronLeft className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => shiftDateWindow(-1)}><ChevronLeft className="h-4 w-4" /></Button>
               <span className="text-sm font-medium min-w-[140px] text-center">
                 {viewMode === "week"
                   ? `${format(dateRange[0] || currentDate, "MMM d")} - ${format(dateRange[dateRange.length - 1] || currentDate, "MMM d, yyyy")}`
                   : format(currentDate, "MMMM yyyy")}
               </span>
-              <Button variant="outline" size="icon" onClick={() => navigate(1)} className="rounded-full"><ChevronRight className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" onClick={() => shiftDateWindow(1)}><ChevronRight className="h-4 w-4" /></Button>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">Bulk:</span>
               <Select value={bulkStatus} onValueChange={setBulkStatus}>
-                <SelectTrigger className="w-[130px] bg-background rounded-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[130px] bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["Present", "Absent", "Late", "Leave", "Holiday"].map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}
                 </SelectContent>
@@ -344,7 +350,7 @@ export default function TrainerAttendancePage() {
                         <TableRow key={trainer.id} className="hover:bg-muted/20">
                           <TableCell className="sticky left-0 bg-background z-10 font-medium">
                             <div className="flex items-center gap-2">
-                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-panel)] border border-primary/15 bg-primary/[0.08] text-xs font-bold text-primary">
                                 {trainer.name.split(" ").map((name) => name[0]).join("")}
                               </div>
                               <span className="truncate">{trainer.name}</span>
@@ -359,7 +365,7 @@ export default function TrainerAttendancePage() {
                                   onClick={() => toggleStatus(trainer.id, dateStr)}
                                   disabled={saving}
                                   className={cn(
-                                    "inline-flex items-center justify-center h-8 w-8 rounded-lg text-xs font-bold transition-all",
+                                    "inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-field)] text-xs font-bold transition-all",
                                     status ? STATUS_COLORS[status] : "bg-muted/30 text-muted-foreground/50 hover:bg-muted",
                                     saving && "opacity-60 cursor-not-allowed",
                                   )}
@@ -370,7 +376,7 @@ export default function TrainerAttendancePage() {
                             );
                           })}
                           <TableCell className="text-center">
-                            <Badge variant="outline" className={cn("font-bold", getTrainerStats(trainer.id) >= 90 ? "text-emerald-600" : getTrainerStats(trainer.id) >= 75 ? "text-amber-600" : "text-destructive")}>
+                            <Badge variant="outline" className={cn("font-bold", getTrainerStats(trainer.id) >= 90 ? "text-primary" : getTrainerStats(trainer.id) >= 75 ? "text-foreground" : "text-destructive")}>
                               {getTrainerStats(trainer.id)}%
                             </Badge>
                           </TableCell>
@@ -414,11 +420,11 @@ export default function TrainerAttendancePage() {
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditLeave(record)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
                           {isSupervisor && record.status === "Pending" && (
                             <>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={() => handleStatusChange(record.backendId, record, "Approved")} disabled={saving}><CheckCircle className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleStatusChange(record.backendId, record, "Rejected")} disabled={saving}><XCircle className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => handleStatusChange(record.backendId, record, "Approved")} disabled={saving}><CheckCircle className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatusChange(record.backendId, record, "Rejected")} disabled={saving}><XCircle className="h-4 w-4" /></Button>
                             </>
                           )}
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteLeave(record.backendId)} disabled={saving}><Trash2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteLeave(record.backendId)} disabled={saving}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -435,9 +441,9 @@ export default function TrainerAttendancePage() {
 
           <Card>
             <CardContent className="p-4 flex flex-wrap gap-4 text-xs">
-              <div className="flex items-center gap-1"><div className="w-4 h-4 rounded bg-green-100" /> Approved</div>
-              <div className="flex items-center gap-1"><div className="w-4 h-4 rounded bg-amber-100" /> Pending</div>
-              <div className="flex items-center gap-1"><div className="w-4 h-4 rounded bg-red-100" /> Rejected</div>
+              <div className="flex items-center gap-1"><div className="h-4 w-4 rounded-[var(--radius-field)] bg-primary/[0.08]" /> Approved</div>
+              <div className="flex items-center gap-1"><div className="h-4 w-4 rounded-[var(--radius-field)] bg-secondary/80" /> Pending</div>
+              <div className="flex items-center gap-1"><div className="h-4 w-4 rounded-[var(--radius-field)] bg-destructive/20" /> Rejected</div>
             </CardContent>
           </Card>
         </TabsContent>

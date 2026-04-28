@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -8,6 +9,7 @@ import { Link } from "react-router-dom";
 import { Plus, Search, Download, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/data/api";
+import { StudentAvatar } from "@/components/StudentAvatar";
 
 export default function StudentsPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -112,24 +114,24 @@ export default function StudentsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" /> Learner Directory
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">{displayedStudents.length} total active learners across all cohorts</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          <Button variant="outline" className="h-11 rounded-full border-border/50">
-            <Download className="h-4 w-4 mr-2" />Export Roster
-          </Button>
-          <Link to="/students/new">
-            <Button className="h-11 rounded-full">
-              <Plus className="h-4 w-4 mr-2" />Add Learner
+      <PageHeader
+        icon={Users}
+        eyebrow="Learners"
+        title="Learner Directory"
+        description={`${displayedStudents.length} total active learners across all cohorts`}
+        actions={
+          <>
+            <Button variant="outline" className="h-11 rounded-full border-border/50">
+              <Download className="h-4 w-4 mr-2" />Export Roster
             </Button>
-          </Link>
-        </div>
-      </div>
+            <Link to="/students/new">
+              <Button className="h-11 rounded-full">
+                <Plus className="h-4 w-4 mr-2" />Add Learner
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {isLoadingData && (
         <p className="text-sm text-muted-foreground">Loading data...</p>
@@ -182,9 +184,11 @@ export default function StudentsPage() {
                 <tr key={student.id} className="hover:bg-muted/10 transition-colors group">
                   <td className="py-4 px-6">
                     <Link to={`/students/${student.portalId || student.id}`} className="font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                        {student.firstName[0]}{student.lastName[0]}
-                      </div>
+                      <StudentAvatar 
+                        firstName={student.firstName} 
+                        lastName={student.lastName} 
+                        size="sm" 
+                      />
                       {student.firstName} {student.lastName}
                     </Link>
                   </td>

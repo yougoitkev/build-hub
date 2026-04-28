@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/store/app-store";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -174,14 +175,12 @@ export default function FeedbackPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <MessageSquareHeart className="h-6 w-6 text-primary" /> Trainer Feedback
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Submit your evaluations and view historical feedback for trainers</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={MessageSquareHeart}
+        eyebrow="Voice Of Learner"
+        title="Trainer Feedback"
+        description="Submit your evaluations and view historical feedback for trainers."
+      />
 
       {isLoadingData && <p className="text-sm text-muted-foreground">Loading data...</p>}
       {!isLoadingData && fetchError && <p className="text-sm text-destructive">Error in fetching data</p>}

@@ -1,25 +1,8 @@
 import { useState } from "react";
 import {
-  LayoutDashboard,
-  Users,
-  CalendarDays,
-  CalendarOff,
-  ClipboardCheck,
-  Eye,
-  UserCog,
   Activity,
   LogOut,
-  History,
-  BarChart3,
-  Network,
-  Grid3X3,
-  ListTodo,
-  FileText,
-  Award,
   ChevronRight,
-  GraduationCap,
-  FolderOpen,
-  Settings,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -29,6 +12,7 @@ import { NotificationPanel } from "@/components/NotificationPanel";
 import tmsLogo from "@/assets/tms-logo.png";
 import mainLogo1 from "@/assets/main-logo-1.png";
 import mainLogo2 from "@/assets/main-logo-2.png";
+import { getNavigationGroups, getRoleMeta } from "@/lib/app-shell-config";
 import {
   Sidebar,
   SidebarContent,
@@ -43,74 +27,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-// Supervisor: 4 top-level items
-const getSupervisorGroups = () => [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  {
-    title: "People",
-    icon: Users,
-    children: [
-      { title: "Trainers", url: "/trainers", icon: UserCog },
-      { title: "Supervisors", url: "/supervisors", icon: Settings },
-      { title: "Students", url: "/students", icon: Users },
-      { title: "Org Chart", url: "/org-chart", icon: Network },
-    ],
-  },
-  {
-    title: "Programs",
-    icon: GraduationCap,
-    children: [
-      { title: "Calendar", url: "/calendar", icon: CalendarDays },
-      { title: "Skills Matrix", url: "/skills-matrix", icon: Grid3X3 },
-      { title: "Trainer Attendance", url: "/trainer-attendance", icon: ClipboardCheck },
-      { title: "Leave Requests", url: "/leave-requests", icon: CalendarOff },
-      { title: "Observations", url: "/trainer-observations", icon: Eye },
-      { title: "Utilization", url: "/trainer-utilization", icon: BarChart3 },
-      { title: "Progress", url: "/progress", icon: Activity },
-    ],
-  },
-  {
-    title: "Resources",
-    icon: FolderOpen,
-    children: [
-      { title: "Tasks", url: "/tasks", icon: ListTodo },
-      { title: "Materials", url: "/materials", icon: FileText },
-      { title: "Certifications", url: "/certifications", icon: Award },
-      { title: "Audit Trail", url: "/audit", icon: History },
-    ],
-  },
-];
-
-// Trainer: 3 top-level items
-const getTrainerGroups = () => [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  {
-    title: "My Work",
-    icon: GraduationCap,
-    children: [
-      { title: "Calendar", url: "/calendar", icon: CalendarDays },
-      { title: "Students", url: "/students", icon: Users },
-      { title: "Attendance", url: "/attendance", icon: ClipboardCheck },
-      { title: "Request Leave", url: "/leave-requests", icon: CalendarOff },
-      { title: "Observations", url: "/observations", icon: Eye },
-      { title: "Progress", url: "/progress", icon: Activity },
-    ],
-  },
-  {
-    title: "Resources",
-    icon: FolderOpen,
-    children: [
-      { title: "Tasks", url: "/tasks", icon: ListTodo },
-      { title: "Materials", url: "/materials", icon: FileText },
-      { title: "Certifications", url: "/certifications", icon: Award },
-    ],
-  },
-];
-
 function SidebarNavItem({ item, collapsed, isActive, openGroup, setOpenGroup }) {
-  const hasChildren = !!item.children;
+  const children = item.children || item.items;
+  const hasChildren = !!children;
   const isOpen = openGroup === item.title;
-  const childActive = hasChildren && item.children.some((c) => isActive(c.url));
+  const childActive = hasChildren && children.some((c) => isActive(c.url));
 
   if (!hasChildren) {
     const active = isActive(item.url);
@@ -120,13 +41,13 @@ function SidebarNavItem({ item, collapsed, isActive, openGroup, setOpenGroup }) 
           <NavLink
             to={item.url}
             className={cn(
-              "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-200 text-sm",
+              "flex items-center gap-3 w-full px-3 py-2 rounded-[var(--radius-field)] transition-all duration-200 text-sm",
               active
-                ? "bg-primary/10 text-primary font-semibold"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "border border-primary/10 bg-primary/[0.08] text-primary font-semibold"
+                : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
             )}
           >
-            <item.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-primary")} />
+            <item.icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-primary" : "text-current")} />
             {!collapsed && <span className="truncate">{item.title}</span>}
           </NavLink>
         </SidebarMenuButton>
@@ -144,13 +65,13 @@ function SidebarNavItem({ item, collapsed, isActive, openGroup, setOpenGroup }) 
       >
         <div
           className={cn(
-            "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-200 text-sm cursor-pointer select-none",
+            "flex items-center gap-3 w-full px-3 py-2 rounded-[var(--radius-field)] transition-all duration-200 text-sm cursor-pointer select-none",
             childActive
               ? "text-primary font-semibold"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
           )}
         >
-          <item.icon className={cn("h-[18px] w-[18px] shrink-0", childActive && "text-primary")} />
+          <item.icon className={cn("h-[18px] w-[18px] shrink-0", childActive ? "text-primary" : "text-current")} />
           {!collapsed && (
             <>
               <span className="truncate flex-1">{item.title}</span>
@@ -168,20 +89,20 @@ function SidebarNavItem({ item, collapsed, isActive, openGroup, setOpenGroup }) 
       {/* Children */}
       {!collapsed && isOpen && (
         <div className="ml-4 pl-3 border-l border-border/40 mt-0.5 mb-1 flex flex-col gap-0.5">
-          {item.children.map((child) => {
+          {children.map((child) => {
             const active = isActive(child.url);
             return (
               <NavLink
                 key={child.title}
                 to={child.url}
                 className={cn(
-                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-all duration-150",
+                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[var(--radius-field)] text-[13px] transition-all duration-150",
                   active
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    ? "bg-primary/[0.08] text-primary font-medium"
+                    : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                 )}
               >
-                <child.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+                <child.icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-current")} />
                 <span className="truncate">{child.title}</span>
               </NavLink>
             );
@@ -206,8 +127,19 @@ export function AppSidebar({ className }) {
     return location.pathname.startsWith(url);
   };
 
-  const isSupervisor = user?.role === "supervisor" || user?.role === "admin";
-  const items = isSupervisor ? getSupervisorGroups() : getTrainerGroups();
+  const userRole = user?.role || "trainer";
+  const roleMeta = getRoleMeta(userRole);
+  const items = getNavigationGroups(userRole).map((group) => {
+    if (group.items.length === 1 && group.items[0].url === "/") {
+      return group.items[0];
+    }
+
+    return {
+      ...group,
+      children: group.items,
+      icon: group.icon || Activity,
+    };
+  });
 
   // Auto-open the group that has the active child
   const defaultOpen = items.find(
@@ -220,7 +152,7 @@ export function AppSidebar({ className }) {
     <Sidebar
       collapsible="icon"
       className={cn(
-        "border-r border-border/50 h-screen transition-all duration-300 ease-in-out shrink-0 bg-background/70 shadow-[2px_0_15px_-3px_rgba(0,0,0,0.05)] z-40",
+        "border-r border-border/55 h-screen shrink-0 bg-sidebar/95 shadow-[2px_0_18px_-10px_rgba(15,23,42,0.18)] backdrop-blur-sm transition-all duration-300 ease-in-out z-40",
         className
       )}
     >
@@ -229,9 +161,14 @@ export function AppSidebar({ className }) {
           <img src={tmsLogo} alt="TMS Logo" className={cn("object-contain shrink-0", collapsed ? "h-8 w-8" : "h-9 w-9")} />
           {!collapsed && (
             <>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-foreground leading-tight flex-1">
-                Training<br />Management System
-              </span>
+              <div className="flex-1 min-w-0">
+                <span className="block text-[10px] font-bold uppercase tracking-wide text-foreground leading-tight">
+                  Training<br />Management System
+                </span>
+                <span className="mt-1 inline-flex rounded-[var(--radius-field)] border border-primary/15 bg-primary/[0.08] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-primary/80">
+                  {roleMeta.workspaceLabel}
+                </span>
+              </div>
               <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors shrink-0" />
             </>
           )}
@@ -270,18 +207,18 @@ export function AppSidebar({ className }) {
       </SidebarContent>
 
       <SidebarFooter className="mt-auto border-t border-border/50 p-2">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-secondary/30 transition-colors">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20 shrink-0">
+        <div className="surface-panel flex items-center gap-3 px-2.5 py-2.5 transition-colors">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-panel)] border border-primary/15 bg-primary/[0.08] text-xs font-bold text-primary shrink-0">
             {user?.name?.split(" ").map((n) => n[0]).join("") || "U"}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-foreground truncate">{user?.name || "User"}</p>
-              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{user?.role || "Role"}</p>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{roleMeta.label}</p>
             </div>
           )}
           {!collapsed && (
-            <button onClick={handleLogout} className="ml-auto p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Logout">
+            <button onClick={handleLogout} className="ml-auto rounded-[var(--radius-field)] p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground" title="Logout">
               <LogOut className="h-4 w-4" />
             </button>
           )}

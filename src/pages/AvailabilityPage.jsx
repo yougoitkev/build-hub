@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAppStore } from "@/store/app-store";
 import { leaveTypes } from "@/lib/phase3-mock-data";
-import { Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Trash2, CheckCircle, XCircle, CalendarOff } from "lucide-react";
 import { format, parseISO, eachDayOfInterval, isWeekend, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -148,15 +149,17 @@ export default function AvailabilityPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Availability & Leave Management</h1>
-          <p className="text-sm text-muted-foreground">Track trainer availability and prevent scheduling conflicts</p>
-        </div>
-        <Button onClick={() => setShowAddDialog(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Add Leave
-        </Button>
-      </div>
+      <PageHeader
+        icon={CalendarOff}
+        eyebrow="Scheduling"
+        title="Availability & Leave Management"
+        description="Track trainer availability and prevent scheduling conflicts."
+        actions={
+          <Button onClick={() => setShowAddDialog(true)} size="sm" className="rounded-full">
+            <Plus className="h-4 w-4 mr-1" /> Add Leave
+          </Button>
+        }
+      />
 
       <div className="flex gap-3 items-center">
         <Select value={trainerFilter} onValueChange={setTrainerFilter}>

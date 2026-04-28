@@ -4,7 +4,8 @@ import { useAppStore } from "@/store/app-store";
 import { ObservationFilters } from "@/components/observations/ObservationFilters";
 import { ObservationMatrix } from "@/components/observations/ObservationMatrix";
 import { Button } from "@/components/ui/button";
-import { Save, RotateCcw, Eye, Users, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Save, RotateCcw, Eye, Users, CheckCircle2, Clock3, CircleDashed, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { api } from "@/data/api";
@@ -29,6 +30,8 @@ const mapRosterStudent = (student) => ({
   language: student.language || "",
   status: student.status || "Scheduled",
 });
+
+const infoCardClass = "surface-panel flex items-center gap-2 px-3 py-2 text-sm";
 
 export default function ObservationsPage() {
   const user = useAppStore((s) => s.user);
@@ -69,14 +72,11 @@ export default function ObservationsPage() {
           return;
         }
 
-        // Strict Strategy: Only show backend sessions that match the 35 target names
         const storeTrainings = useAppStore.getState().trainings || [];
-        const targetNames = storeTrainings.map(t => t.title.toLowerCase().trim());
 
-        // Merge Strategy: Combine API sessions with Mock Sessions
         const mappedMockTrainings = storeTrainings
-          .filter(t => t.status === "Ongoing" || t.status === "Upcoming")
-          .map(t => ({
+          .filter((t) => t.status === "Ongoing" || t.status === "Upcoming")
+          .map((t) => ({
             id: String(t.id),
             title: t.title || "",
             courseCode: t.courseCode || "",
@@ -86,17 +86,13 @@ export default function ObservationsPage() {
             endDate: t.endDate || "",
           }));
 
-        const combinedList = [...trainingList, ...mappedMockTrainings.filter(mt => !trainingList.some(at => at.title === mt.title))];
-        trainingList = combinedList.filter(t => 
-          targetNames.includes(t.title.toLowerCase().trim())
-        );
+        trainingList = [...trainingList, ...mappedMockTrainings.filter((mt) => !trainingList.some((at) => at.title === mt.title))];
 
         setTrainings(trainingList);
         if (trainingList.length > 0) {
           const requestedTrainingId = searchParams.get("trainingId");
-          const requestedTraining = requestedTrainingId
-            ? trainingList.find((training) => String(training.id) === String(requestedTrainingId))
-            : null;
+          const requestedTraining =
+            requestedTrainingId && trainingList.find((training) => String(training.id) === String(requestedTrainingId));
           const preferredTraining =
             requestedTraining ||
             trainingList.find((training) => String(training.status).toLowerCase() === "ongoing") ||
@@ -125,7 +121,7 @@ export default function ObservationsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [searchParams]);
 
   const loadRosterAndObservations = useCallback(async () => {
     if (!selectedTraining || selectedTraining === "all" || !selectedDate) {
@@ -298,24 +294,21 @@ export default function ObservationsPage() {
   }, [hasUnsaved]);
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto pb-20">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
-            <Eye className="h-8 w-8 text-primary" />
-            Daily Observations
-          </h1>
-          <p className="text-muted-foreground font-medium mt-1">
-            Record qualitative performance observations for each student on a selected date.
-          </p>
-        </div>
-        {hasUnsaved && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/10 border border-warning/20 animate-pulse">
-            <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-            <span className="text-xs font-bold text-warning uppercase tracking-wider">Unsaved Changes</span>
-          </div>
-        )}
-      </div>
+    <div className="mx-auto max-w-[1600px] space-y-6 pb-20">
+      <PageHeader
+        icon={Eye}
+        eyebrow="Learner Insights"
+        title="Daily Observations"
+        description="Record qualitative performance observations for each student on a selected date."
+        meta={
+          hasUnsaved ? (
+            <div className="inline-flex items-center gap-2 rounded-[var(--radius-field)] border border-primary/15 bg-primary/[0.08] px-3 py-1.5 text-xs font-semibold text-primary">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Changes staged
+            </div>
+          ) : null
+        }
+      />
 
       {isLoadingData && <p className="text-sm text-muted-foreground">Loading data...</p>}
       {!isLoadingData && fetchError && !isLoadingRows && <p className="text-sm text-destructive">Error in fetching data</p>}
@@ -334,36 +327,35 @@ export default function ObservationsPage() {
           />
 
           {selectedDate && (
-            <div className="flex flex-wrap items-center gap-6 bg-card p-4 rounded-xl border border-border/50 shadow-sm animate-fade-in">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground font-medium">Date:</span>
+            <div className="surface-shell flex flex-wrap items-center gap-3 p-4 animate-fade-in">
+              <div className={infoCardClass}>
+                <span className="font-medium text-muted-foreground">Date:</span>
                 <span className="font-bold text-foreground">{format(selectedDate, "MMM dd, yyyy")}</span>
               </div>
               {selectedTrainingObj && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground font-medium">Training:</span>
+                <div className={infoCardClass}>
+                  <span className="font-medium text-muted-foreground">Training:</span>
                   <span className="font-bold text-foreground">{selectedTrainingObj.title}</span>
                 </div>
               )}
-              <div className="h-5 w-px bg-border/50" />
-              <div className="flex items-center gap-1.5">
+              <div className={infoCardClass}>
                 <Users className="h-4 w-4 text-primary" />
-                <span className="text-sm font-bold text-foreground">{stats.total}</span>
+                <span className="font-bold text-foreground">{stats.total}</span>
                 <span className="text-xs text-muted-foreground">Students</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-success" />
-                <span className="text-sm font-bold text-foreground">{stats.completed}</span>
+              <div className={infoCardClass}>
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span className="font-bold text-foreground">{stats.completed}</span>
                 <span className="text-xs text-muted-foreground">Completed</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-warning" />
-                <span className="text-sm font-bold text-foreground">{stats.draft}</span>
-                <span className="text-xs text-muted-foreground">Draft</span>
+              <div className={infoCardClass}>
+                <Clock3 className="h-4 w-4 text-muted-foreground" />
+                <span className="font-bold text-foreground">{stats.draft}</span>
+                <span className="text-xs text-muted-foreground">In Progress</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-bold text-foreground">{stats.pending}</span>
+              <div className={infoCardClass}>
+                <CircleDashed className="h-4 w-4 text-muted-foreground" />
+                <span className="font-bold text-foreground">{stats.pending}</span>
                 <span className="text-xs text-muted-foreground">Pending</span>
               </div>
 
@@ -371,7 +363,7 @@ export default function ObservationsPage() {
                 <Button variant="outline" size="sm" onClick={handleDiscard} disabled={!hasUnsaved} className="gap-1.5">
                   <RotateCcw className="h-3.5 w-3.5" /> Discard
                 </Button>
-                <Button size="sm" onClick={handleSaveAll} disabled={!hasUnsaved} className="gap-1.5 shadow-lg shadow-primary/20">
+                <Button size="sm" onClick={handleSaveAll} disabled={!hasUnsaved} className="gap-1.5">
                   <Save className="h-3.5 w-3.5" /> Save All
                 </Button>
               </div>
@@ -382,10 +374,10 @@ export default function ObservationsPage() {
             isLoadingRows ? (
               <p className="text-sm text-muted-foreground">Loading data...</p>
             ) : selectedTraining === "all" ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center bg-card rounded-2xl border border-border/50 shadow-sm">
-                <Eye className="h-12 w-12 text-muted-foreground/20 mb-4" />
+              <div className="surface-shell flex flex-col items-center justify-center py-24 text-center">
+                <Eye className="mb-4 h-12 w-12 text-muted-foreground/30" />
                 <h3 className="text-lg font-bold text-foreground">Select a Training to Begin</h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                <p className="mt-1 max-w-md text-sm text-muted-foreground">
                   Observations are loaded per scheduled training. Choose a training from the filter above to load the student roster from the API.
                 </p>
               </div>
@@ -393,10 +385,10 @@ export default function ObservationsPage() {
               <ObservationMatrix students={filteredStudents} observations={localObservations} onFieldChange={handleFieldChange} />
             )
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center bg-card rounded-2xl border border-border/50 shadow-sm">
-              <Eye className="h-12 w-12 text-muted-foreground/20 mb-4" />
+            <div className="surface-shell flex flex-col items-center justify-center py-24 text-center">
+              <Eye className="mb-4 h-12 w-12 text-muted-foreground/30" />
               <h3 className="text-lg font-bold text-foreground">Select a Date to Begin</h3>
-              <p className="text-sm text-muted-foreground mt-1 max-w-md">
+              <p className="mt-1 max-w-md text-sm text-muted-foreground">
                 Choose an observation date from the filter above to load the student roster and start recording daily observations.
               </p>
             </div>

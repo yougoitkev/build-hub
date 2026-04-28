@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Network, ChevronDown, ChevronRight, Users } from "lucide-react";
@@ -131,12 +132,12 @@ export default function OrgChartPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-full mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Network className="h-6 w-6 text-primary" /> Organization Chart</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Supervisor to trainer hierarchy with team details</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Network}
+        eyebrow="People"
+        title="Organization Chart"
+        description="Supervisor to trainer hierarchy with team details."
+      />
 
       <div className="overflow-x-auto pb-8">
         <div className="flex flex-col items-center gap-8 min-w-max px-8">

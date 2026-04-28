@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,17 +81,17 @@ export default function SupervisorFormPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" /> Supervisor Management
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">{supervisors.length} supervisors in the system</p>
-        </div>
-        <Button onClick={openAdd} className="rounded-full gap-2">
-          <Plus className="h-4 w-4" /> Add Supervisor
-        </Button>
-      </div>
+      <PageHeader
+        icon={Shield}
+        eyebrow="People"
+        title="Supervisor Management"
+        description={`${supervisors.length} supervisors in the system`}
+        actions={
+          <Button onClick={openAdd} className="rounded-full gap-2">
+            <Plus className="h-4 w-4" /> Add Supervisor
+          </Button>
+        }
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -83,6 +83,38 @@ const mapImportRecord = (importRecord) => ({
   errorRows: Number(importRecord.error_rows || importRecord.errorRows || 0),
 });
 
+const resolveNotificationTarget = (notification, isSupervisor) => {
+  if (notification?.target?.pathname) {
+    return notification.target;
+  }
+
+  if (String(notification?.id || "").startsWith("sess-")) {
+    return { pathname: "/calendar" };
+  }
+
+  if (String(notification?.id || "").startsWith("trn-")) {
+    return { pathname: "/progress" };
+  }
+
+  if (String(notification?.id || "").startsWith("fb-")) {
+    return { pathname: "/feedback" };
+  }
+
+  if (String(notification?.id || "").startsWith("imp-")) {
+    return { pathname: "/import" };
+  }
+
+  if (notification?.source === "leave") {
+    return { pathname: "/leave-requests" };
+  }
+
+  if (notification?.id === "att-reminder") {
+    return { pathname: "/attendance" };
+  }
+
+  return { pathname: isSupervisor ? "/" : "/" };
+};
+
 export function NotificationPanel({ collapsed }) {
   const navigate = useNavigate();
   const user = useAppStore((s) => s.user);
@@ -210,7 +242,7 @@ export function NotificationPanel({ collapsed }) {
       });
     });
 
-    trainings
+      trainings
       .filter((training) => String(training.status).toLowerCase() === "ongoing")
       .forEach((training) => {
         notifications.push({
@@ -220,6 +252,9 @@ export function NotificationPanel({ collapsed }) {
           message: `${training.title} - ends ${training.endDate || "TBD"}`,
           type: "info",
           date: todayStr,
+          target: {
+            pathname: "/progress",
+          },
         });
       });
 
@@ -288,6 +323,7 @@ export function NotificationPanel({ collapsed }) {
     return notifications
       .map((notification) => ({
         ...notification,
+        target: resolveNotificationTarget(notification, isSupervisor),
         read: readIds.includes(notification.id),
       }))
       .sort((left, right) => String(right.date || "").localeCompare(String(left.date || "")));
@@ -296,9 +332,9 @@ export function NotificationPanel({ collapsed }) {
   const unreadCount = allNotifications.filter((notification) => !notification.read).length;
 
   const typeStyles = {
-    urgent: "border-l-destructive bg-destructive/5",
-    warning: "border-l-amber-500 bg-amber-500/5",
-    info: "border-l-primary bg-primary/5",
+    urgent: "border-l-primary bg-primary/[0.08]",
+    warning: "border-l-border bg-muted/45",
+    info: "border-l-primary/40 bg-primary/[0.04]",
   };
 
   const handleMarkRead = (id) => {
@@ -346,7 +382,7 @@ export function NotificationPanel({ collapsed }) {
           {unreadCount > 0 && (
             <span
               className={cn(
-                "flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold",
+                "flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold",
                 collapsed ? "absolute -top-0.5 -right-0.5 h-5 w-5" : "ml-auto h-5 min-w-5 px-1"
               )}
             >
@@ -381,14 +417,14 @@ export function NotificationPanel({ collapsed }) {
               return (
                 <div
                   key={notif.id}
-                  className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border-l-4 transition-colors cursor-pointer hover:bg-muted/30",
+            className={cn(
+                    "flex items-start gap-3 rounded-[var(--radius-panel)] border-l-4 p-3 transition-colors cursor-pointer hover:bg-secondary/60",
                     typeStyles[notif.type] || typeStyles.info,
                     notif.read && "opacity-60"
                   )}
                   onClick={() => handleNotificationClick(notif)}
                 >
-                  <Icon className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                  <Icon className="icon-neutral mt-0.5 h-4 w-4 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-foreground">{notif.title}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{notif.message}</p>

@@ -2,13 +2,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 
 const HEALTH_OPTIONS = [
-  { value: "GREEN", label: "Green", color: "bg-success/15 text-success border-success/30" },
-  { value: "AMBER", label: "Amber", color: "bg-warning/15 text-warning border-warning/30" },
-  { value: "RED", label: "Red", color: "bg-destructive/15 text-destructive border-destructive/30" },
+  { value: "GREEN", label: "Green" },
+  { value: "AMBER", label: "Amber" },
+  { value: "RED", label: "Red" },
 ];
 
 export function getHealthStyle(value) {
-  return HEALTH_OPTIONS.find(o => o.value === value)?.color || "bg-muted text-muted-foreground border-border";
+  return value ? "border-primary/20 bg-primary/[0.08] text-primary" : "border-border/60 bg-background text-muted-foreground";
 }
 
 export function HealthDropdown({ value, onChange, className }) {
@@ -16,8 +16,8 @@ export function HealthDropdown({ value, onChange, className }) {
     <Select value={value || ""} onValueChange={onChange}>
       <SelectTrigger
         className={cn(
-          "h-9 w-full text-xs font-bold border transition-all duration-200",
-          value ? getHealthStyle(value) : "border-border/50 text-muted-foreground",
+          "h-9 w-full text-xs font-semibold transition-all duration-200",
+          getHealthStyle(value),
           className
         )}
       >
@@ -27,10 +27,9 @@ export function HealthDropdown({ value, onChange, className }) {
         {HEALTH_OPTIONS.map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
             <div className="flex items-center gap-2">
-              <span className={cn("h-3 w-3 rounded-full", 
-                opt.value === "GREEN" ? "bg-success" : opt.value === "AMBER" ? "bg-warning" : "bg-destructive"
-              )} />
-              <span className="text-xs font-semibold">{opt.label}</span>
+              <span className="inline-flex min-w-[3.5rem] items-center justify-center rounded-[var(--radius-field)] border border-primary/15 bg-primary/[0.08] px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
+                {opt.label}
+              </span>
             </div>
           </SelectItem>
         ))}

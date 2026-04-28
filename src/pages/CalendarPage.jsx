@@ -2,15 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppStore } from "@/store/app-store";
 import { TRAINER_COLORS } from "@/lib/mock-data";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Users, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Users, Clock, AlertTriangle, MapPinned } from "lucide-react";
 import { format, addDays, startOfWeek, addWeeks, subWeeks, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isValid, getWeekOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { api } from "@/data/api";
+import { detectScheduleConflicts } from "@/lib/tms-insights";
+import { buildRoomUsageRows } from "@/lib/reporting";
 
 const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
 
@@ -52,6 +55,14 @@ const DYNAMIC_COLORS = [
   { bg: "bg-orange-500", text: "text-orange-700", light: "bg-orange-100", border: "border-orange-300", hex: "#f97316" },
   { bg: "bg-indigo-500", text: "text-indigo-700", light: "bg-indigo-100", border: "border-indigo-300", hex: "#6366f1" },
 ];
+
+const getPhaseLabel = (session) => {
+  const label = `${session.title || ""} ${session.notes || ""}`.toLowerCase();
+  if (label.includes("nest")) return "Nesting";
+  if (label.includes("class")) return "Classroom";
+  if (label.includes("onboard")) return "Onboarding";
+  return session.sessionNo ? `Day ${session.sessionNo}` : "Scheduled";
+};
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -174,33 +185,43 @@ export default function CalendarPage() {
   const isSelectedSession = (session) => String(session.id) === String(selectedSessionId);
 
   const todaySessions = useMemo(() => getSessionsForDate(today), [filteredSessions, today]);
+  const roomUsageRows = useMemo(() => buildRoomUsageRows({ sessions: filteredSessions }), [filteredSessions]);
+  const scheduleConflicts = useMemo(() => detectScheduleConflicts(filteredSessions), [filteredSessions]);
 
   return (
     <div className="space-y-4 animate-fade-in max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-primary/5 p-5 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarIcon className="h-6 w-6 text-primary" /> {isSupervisor ? "All Classes" : "My Calendar"}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {isSupervisor ? "View all trainer classes across the organization" : "Your scheduled training sessions"}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {isSupervisor && (
-            <Select value={trainerFilter} onValueChange={setTrainerFilter}>
-              <SelectTrigger className="w-[180px] bg-background"><SelectValue placeholder="All Trainers" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Trainers</SelectItem>
-                {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-          <Button className="rounded-full px-6 flex-1 md:flex-none" onClick={() => navigate('/create-program')}>
-            <Plus className="h-4 w-4 mr-2" /> Schedule Training
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={CalendarIcon}
+        eyebrow="Scheduling"
+        title={isSupervisor ? "All Classes" : "My Calendar"}
+        description={isSupervisor ? "View all trainer classes across the organization" : "Your scheduled training sessions"}
+        meta={
+          <>
+            <div className="rounded-full border border-primary/10 bg-background/70 px-3 py-1 text-xs font-semibold text-muted-foreground">
+              {filteredSessions.length} sessions in view
+            </div>
+            <Badge variant="outline" className={scheduleConflicts.length ? "border-rose-500/20 bg-rose-500/10 text-rose-700" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"}>
+              {scheduleConflicts.length ? `${scheduleConflicts.length} conflicts detected` : "No schedule conflicts"}
+            </Badge>
+          </>
+        }
+        actions={
+          <>
+            {isSupervisor && (
+              <Select value={trainerFilter} onValueChange={setTrainerFilter}>
+                <SelectTrigger className="w-[180px] rounded-full bg-background"><SelectValue placeholder="All Trainers" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Trainers</SelectItem>
+                  {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <Button className="rounded-full px-6 flex-1 md:flex-none" onClick={() => navigate('/create-program')}>
+              <Plus className="h-4 w-4 mr-2" /> Schedule Training
+            </Button>
+          </>
+        }
+      />
 
       {isLoadingData && <p className="text-sm text-muted-foreground">Loading data...</p>}
       {!isLoadingData && fetchError && <p className="text-sm text-destructive">Error in fetching data</p>}
@@ -269,7 +290,12 @@ export default function CalendarPage() {
                             const c = getSessionColor(s);
                             return (
                               <div key={s.id} className={`text-xs p-2 rounded-lg border cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all ${c.bg} ${c.text} ${c.border} ${isSelectedSession(s) ? "ring-2 ring-primary/40 shadow-md" : ""}`}>
-                                <p className="font-bold truncate">{s.title}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="font-bold truncate">{s.title}</p>
+                                  <span className="rounded-full bg-background/70 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    {getPhaseLabel(s)}
+                                  </span>
+                                </div>
                                 <div className="flex items-center justify-between text-[10px] font-medium opacity-80 mt-1">
                                   <span>{s.startTime}</span>
                                   <span className="flex items-center gap-1"><Users className="h-3 w-3" />{s.studentIds.length}</span>
@@ -339,6 +365,8 @@ export default function CalendarPage() {
                             <span className="flex items-center"><Users className="h-3.5 w-3.5 mr-1" /> {s.trainerName}</span>
                             <span>·</span>
                             <span>{s.location}</span>
+                            <span>·</span>
+                            <span>{getPhaseLabel(s)}</span>
                           </div>
                           {s.notes && <p className="text-sm text-foreground/80 bg-muted/30 p-3 rounded-lg">{s.notes}</p>}
                           <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-4">
@@ -437,6 +465,47 @@ export default function CalendarPage() {
                   </div>
                 )}
               </ScrollArea>
+            </PremiumCardContent>
+          </PremiumCard>
+
+          <PremiumCard>
+            <PremiumCardHeader className="pb-2 border-b border-border/50">
+              <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <MapPinned className="h-4 w-4" /> Room Usage
+              </PremiumCardTitle>
+            </PremiumCardHeader>
+            <PremiumCardContent className="p-4 space-y-2">
+              {roomUsageRows.length ? roomUsageRows.slice(0, 6).map((room) => (
+                <div key={room.room} className="rounded-xl border border-border/50 bg-muted/10 px-3 py-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold">{room.room}</p>
+                    <span className="text-xs text-muted-foreground">{room.sessions} sessions</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {room.cohorts} cohorts • {room.activeDates} active dates
+                  </p>
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground">No room usage data is available for the current filter.</p>
+              )}
+            </PremiumCardContent>
+          </PremiumCard>
+
+          <PremiumCard>
+            <PremiumCardHeader className="pb-2 border-b border-border/50">
+              <PremiumCardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" /> Conflict Watch
+              </PremiumCardTitle>
+            </PremiumCardHeader>
+            <PremiumCardContent className="p-4 space-y-2">
+              {scheduleConflicts.length ? scheduleConflicts.slice(0, 4).map((conflict) => (
+                <div key={conflict.id} className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2">
+                  <p className="text-sm font-semibold text-rose-700">{conflict.title}</p>
+                  <p className="mt-1 text-xs text-rose-700/80">{conflict.detail}</p>
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground">Trainer and room schedules are currently conflict-free.</p>
+              )}
             </PremiumCardContent>
           </PremiumCard>
         </div>

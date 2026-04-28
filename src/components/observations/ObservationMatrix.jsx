@@ -1,42 +1,59 @@
-import { useMemo } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { StudentAvatar } from "@/components/StudentAvatar";
 import { Textarea } from "@/components/ui/textarea";
 import { RatingDropdown } from "./RatingDropdown";
 import { HealthDropdown } from "./HealthDropdown";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed, Clock3 } from "lucide-react";
 
 function RowStatus({ row }) {
   const filled = [row.softSkills, row.technicalSkills, row.attendanceRating, row.behavior, row.learnerHealth].filter(Boolean).length;
-  if (row._saved) return <Badge variant="outline" className="text-[10px] gap-1 border-success/30 text-success"><CheckCircle2 className="h-3 w-3" />Saved</Badge>;
-  if (filled > 0 || row.observationText) return <Badge variant="outline" className="text-[10px] gap-1 border-warning/30 text-warning"><Clock className="h-3 w-3" />Draft</Badge>;
-  return <Badge variant="outline" className="text-[10px] gap-1 border-border text-muted-foreground"><AlertCircle className="h-3 w-3" />Pending</Badge>;
+  if (row._saved) {
+    return (
+      <Badge variant="outline" className="gap-1 border-primary/15 bg-primary/[0.08] text-[10px] text-primary">
+        <CheckCircle2 className="h-3 w-3 text-primary" />
+        Saved
+      </Badge>
+    );
+  }
+  if (filled > 0 || row.observationText) {
+    return (
+      <Badge variant="outline" className="gap-1 border-border/60 bg-secondary/70 text-[10px] text-foreground">
+        <Clock3 className="h-3 w-3 text-muted-foreground" />
+        In Progress
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="gap-1 border-border/60 bg-background/80 text-[10px] text-muted-foreground">
+      <CircleDashed className="h-3 w-3 text-muted-foreground" />
+      Pending
+    </Badge>
+  );
 }
 
 export function ObservationMatrix({ students, observations, onFieldChange }) {
   return (
-    <div className="relative border border-border/50 rounded-2xl bg-card shadow-xl shadow-foreground/5 overflow-hidden animate-fade-in">
+    <div className="table-shell relative animate-fade-in">
       <div className="overflow-auto max-h-[70vh] scrollbar-thin">
         <table className="w-full border-collapse">
-          <thead className="sticky top-0 z-30 bg-background/95 backdrop-blur-md">
+          <thead className="sticky top-0 z-30 bg-card/95 backdrop-blur-md">
             <tr className="shadow-sm">
-              <th className="sticky left-0 z-40 bg-background/95 border-b border-border/50 p-4 text-left min-w-[260px]">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Student</span>
+              <th className="sticky left-0 z-40 min-w-[260px] border-b border-border/50 bg-card/95 p-4 text-left">
+                <span className="section-kicker text-muted-foreground/80">Student</span>
               </th>
               {["Soft Skills", "Technical Skills", "Attendance", "Behavior"].map((col) => (
                 <th key={col} className="border-b border-l border-border/10 p-3 min-w-[130px] text-center">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{col}</span>
+                  <span className="section-kicker text-muted-foreground/80">{col}</span>
                 </th>
               ))}
               <th className="border-b border-l border-border/10 p-3 min-w-[130px] text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Learner Health</span>
+                <span className="section-kicker text-muted-foreground/80">Learner Health</span>
               </th>
               <th className="border-b border-l border-border/10 p-3 min-w-[280px] text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Observation</span>
+                <span className="section-kicker text-muted-foreground/80">Observation</span>
               </th>
               <th className="border-b border-l border-border/10 p-3 min-w-[80px] text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Status</span>
+                <span className="section-kicker text-muted-foreground/80">Status</span>
               </th>
             </tr>
           </thead>
@@ -44,20 +61,20 @@ export function ObservationMatrix({ students, observations, onFieldChange }) {
             {students.map((student) => {
               const row = observations[student.id] || {};
               return (
-                <tr key={student.id} className="hover:bg-muted/5 group transition-colors">
-                  {/* Student info - sticky */}
-                  <td className="sticky left-0 z-20 bg-background/95 group-hover:bg-muted/10 transition-colors border-r border-border/10 p-4">
+                <tr key={student.id} className="group transition-colors hover:bg-secondary/40">
+                  <td className="sticky left-0 z-20 border-r border-border/10 bg-card/95 p-4 transition-colors group-hover:bg-secondary/45">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9 border-2 border-primary/10 shadow-sm">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.id}`} />
-                        <AvatarFallback className="text-[10px] font-bold">{student.firstName[0]}{student.lastName[0]}</AvatarFallback>
-                      </Avatar>
+                      <StudentAvatar 
+                        firstName={student.firstName} 
+                        lastName={student.lastName} 
+                        size="sm"
+                      />
                       <div className="min-w-0">
-                        <p className="font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors cursor-pointer">
+                        <p className="truncate text-sm font-bold text-foreground">
                           {student.firstName} {student.lastName}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] font-mono font-medium text-muted-foreground bg-muted/50 px-1.5 rounded uppercase tracking-wider">
+                          <span className="rounded-[var(--radius-field)] border border-border/60 bg-muted/70 px-1.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider text-muted-foreground">
                             {student.empId}
                           </span>
                           <span className="text-[10px] font-medium text-muted-foreground">{student.language}</span>
@@ -66,38 +83,34 @@ export function ObservationMatrix({ students, observations, onFieldChange }) {
                     </div>
                   </td>
 
-                  {/* Rating dropdowns */}
-                  <td className="border-l border-border/10 p-2">
+                  <td className="border-l border-border/10 p-3">
                     <RatingDropdown value={row.softSkills} onChange={(v) => onFieldChange(student.id, "softSkills", v)} placeholder="Soft" />
                   </td>
-                  <td className="border-l border-border/10 p-2">
+                  <td className="border-l border-border/10 p-3">
                     <RatingDropdown value={row.technicalSkills} onChange={(v) => onFieldChange(student.id, "technicalSkills", v)} placeholder="Tech" />
                   </td>
-                  <td className="border-l border-border/10 p-2">
+                  <td className="border-l border-border/10 p-3">
                     <RatingDropdown value={row.attendanceRating} onChange={(v) => onFieldChange(student.id, "attendanceRating", v)} placeholder="Attend" />
                   </td>
-                  <td className="border-l border-border/10 p-2">
+                  <td className="border-l border-border/10 p-3">
                     <RatingDropdown value={row.behavior} onChange={(v) => onFieldChange(student.id, "behavior", v)} placeholder="Behavior" />
                   </td>
 
-                  {/* Learner Health */}
-                  <td className="border-l border-border/10 p-2">
+                  <td className="border-l border-border/10 p-3">
                     <HealthDropdown value={row.learnerHealth} onChange={(v) => onFieldChange(student.id, "learnerHealth", v)} />
                   </td>
 
-                  {/* Observation text */}
-                  <td className="border-l border-border/10 p-2">
+                  <td className="border-l border-border/10 p-3">
                     <Textarea
                       value={row.observationText || ""}
                       onChange={(e) => onFieldChange(student.id, "observationText", e.target.value)}
                       placeholder="Enter detailed daily observation for this learner..."
                       rows={2}
-                      className="min-h-[60px] text-xs resize-y border-border/50"
+                      className="min-h-[72px] resize-y text-xs"
                     />
                   </td>
 
-                  {/* Status */}
-                  <td className="border-l border-border/10 p-2 text-center">
+                  <td className="border-l border-border/10 p-3 text-center">
                     <RowStatus row={row} />
                   </td>
                 </tr>

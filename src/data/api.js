@@ -957,6 +957,12 @@ export const createApiClient = () => ({
         ...options,
       }),
   },
+
+  localReports: {
+    transition: (options = {}) => request("/reports/local/transition", options),
+    kpi: (options = {}) => request("/reports/local/kpi", options),
+    trainerAttendance: (options = {}) => request("/reports/local/trainer-attendance", options),
+  },
 });
 
 export const api = createApiClient();

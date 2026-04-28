@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -78,15 +79,13 @@ export default function AuditPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-12">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" /> Audit Trail
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Track all activity across the platform</p>
-        </div>
-        <Badge variant="outline" className="text-sm font-bold">{logs.length} entries</Badge>
-      </div>
+      <PageHeader
+        icon={Shield}
+        eyebrow="Governance"
+        title="Audit Trail"
+        description="Track all activity across the platform."
+        meta={<Badge variant="outline" className="text-sm font-bold">{logs.length} entries</Badge>}
+      />
 
       <div className="flex flex-col sm:flex-row gap-3 items-end bg-muted/20 border border-border/50 rounded-xl p-4">
         <div className="flex-1 w-full sm:w-auto">

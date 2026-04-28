@@ -4,12 +4,12 @@ import { ATTENDANCE_VALUES } from "@/lib/tier-config";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function getCellStyle(value) {
-  if (value === "NCNS") return "bg-destructive/10 text-destructive border-destructive/30";
-  const num = parseInt(value);
-  if (num === 0) return "bg-warning/10 text-warning border-warning/30";
-  if (num >= 1 && num < 8) return "bg-info/10 text-info border-info/30";
-  if (num === 8) return "bg-success/10 text-success border-success/30";
-  return "";
+  if (value === "NCNS") return "border-destructive/20 bg-destructive/[0.06] text-destructive";
+  const num = parseInt(value, 10);
+  if (num === 0) return "border-border/60 bg-secondary/80 text-muted-foreground";
+  if (num >= 1 && num < 8) return "border-border/60 bg-background text-foreground";
+  if (num === 8) return "border-primary/20 bg-primary/[0.08] text-primary";
+  return "border-border/60 bg-background text-muted-foreground";
 }
 
 export function HoursDropdown({ value, onChange, disabled, provenance, hasOverride, className }) {
@@ -17,14 +17,14 @@ export function HoursDropdown({ value, onChange, disabled, provenance, hasOverri
     <Select value={String(value ?? "")} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger
         className={cn(
-          "h-8 w-[76px] text-xs font-mono font-semibold border transition-colors",
+          "h-8 w-[76px] text-xs font-mono font-semibold shadow-none transition-colors",
           getCellStyle(value),
-          hasOverride && "ring-1 ring-accent ring-offset-1",
+          hasOverride && "ring-1 ring-primary/40 ring-offset-1",
           className
         )}
         aria-label="Select hours or NCNS"
       >
-        <SelectValue placeholder="—" />
+        <SelectValue placeholder="-" />
       </SelectTrigger>
       <SelectContent>
         {ATTENDANCE_VALUES.map((v) => (
@@ -40,9 +40,9 @@ export function HoursDropdown({ value, onChange, disabled, provenance, hasOverri
     return (
       <Tooltip>
         <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-        <TooltipContent side="top" className="text-xs max-w-[200px]">
+        <TooltipContent side="top" className="max-w-[200px] text-xs">
           <p>Imported from Excel (Import #{provenance.importId}, row {provenance.rowNumber})</p>
-          {hasOverride && <p className="text-accent mt-1 font-semibold">Manually overridden</p>}
+          {hasOverride && <p className="mt-1 font-semibold text-primary">Manually overridden</p>}
         </TooltipContent>
       </Tooltip>
     );

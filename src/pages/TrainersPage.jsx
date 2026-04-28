@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PremiumCard, PremiumCardContent } from "@/components/learning/PremiumCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +15,7 @@ import { Search, Users, Activity, Target, Plus, Pencil, Trash2, LayoutGrid, List
 import { api } from "@/data/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { StudentAvatar } from "@/components/StudentAvatar";
 
 const EMPTY_FORM = {
   firstName: "",
@@ -278,15 +280,15 @@ export default function TrainersPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Users className="h-6 w-6 text-primary" /> Training Facilitators</h1>
-          <p className="text-muted-foreground mt-1 text-sm">{trainers.length} trainers in the system</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+      <PageHeader
+        icon={Users}
+        eyebrow="People"
+        title="Training Facilitators"
+        description={`${trainers.length} trainers in the system`}
+        actions={
           <Button onClick={openAdd} className="rounded-full gap-2"><Plus className="h-4 w-4" /> Add Trainer</Button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
         <div className="relative flex-1 sm:min-w-[240px]">
@@ -328,9 +330,11 @@ export default function TrainersPage() {
             <PremiumCard key={trainer.id} className="hover:shadow-lg transition-all duration-300 flex flex-col hover:-translate-y-1">
               <PremiumCardContent className="p-6 flex-1 flex flex-col">
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-lg font-bold text-primary shadow-inner border border-primary/10 shrink-0">
-                    {trainer.name?.split(" ").map((name) => name[0]).join("")}
-                  </div>
+                  <StudentAvatar 
+                    firstName={trainer.firstName} 
+                    lastName={trainer.lastName} 
+                    size="lg"
+                  />
                   <div className="flex-1 min-w-0 pt-1">
                     <p className="font-bold text-lg text-foreground truncate">{trainer.name}</p>
                     <p className="text-xs font-medium text-muted-foreground truncate mb-2">{trainer.email}</p>
@@ -383,7 +387,14 @@ export default function TrainersPage() {
                 <TableBody>
                   {filtered.map((trainer) => (
                     <TableRow key={trainer.id} className="hover:bg-muted/20">
-                      <TableCell className="font-medium">{trainer.name}</TableCell>
+                      <TableCell className="font-medium flex items-center gap-3">
+                        <StudentAvatar 
+                          firstName={trainer.firstName} 
+                          lastName={trainer.lastName} 
+                          size="sm"
+                        />
+                        {trainer.name}
+                      </TableCell>
                       <TableCell>{trainer.portalId}</TableCell>
                       <TableCell className="text-muted-foreground">{trainer.email}</TableCell>
                       <TableCell><StatusBadge status={trainer.role} /></TableCell>
