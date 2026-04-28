@@ -10,7 +10,6 @@ export function CourseCard({
     description,
     progress,
     studentsCount,
-    capacity,
     nextSession,
     className,
     onClick,
@@ -29,7 +28,7 @@ export function CourseCard({
                     {studentsCount !== undefined && (
                         <div className="flex items-center text-sm text-muted-foreground">
                             <Users className="h-4 w-4 mr-2" />
-                            <span>{studentsCount} Students Enrolled {capacity ? `/ ${capacity} Capacity` : ""}</span>
+                            <span>{studentsCount} Students Enrolled</span>
                         </div>
                     )}
                     {nextSession && (

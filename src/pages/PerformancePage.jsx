@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store/app-store";
 import { TRAINER_COLORS } from "@/lib/mock-data";
@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Users, CheckCircle2, Clock, Filter, CalendarDays, BarChart2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Activity, Users, CheckCircle2, Clock, Filter, CalendarDays, BarChart2, ChevronLeft, ChevronRight, LocateFixed } from "lucide-react";
 import { format, addDays, differenceInDays, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { api } from "@/data/api";
@@ -219,10 +219,12 @@ function TrainerGantt({ trainerRows, rangeStart, totalDays, cellWidth, onProgram
 export default function PerformancePage() {
   const navigate = useNavigate();
   const user = useAppStore((s) => s.user);
+  const ganttScrollRef = useRef(null);
 
   const isSupervisor = user?.role === "supervisor" || user?.role === "admin";
   const [selectedTrainer, setSelectedTrainer] = useState("all");
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [statusFilter, setStatusFilter] = useState("ongoing");
   const [trainers, setTrainers] = useState([]);
   const [trainings, setTrainings] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -269,6 +271,25 @@ export default function PerformancePage() {
   const totalDays = differenceInDays(rangeEnd, rangeStart) + 1;
   const cellWidth = 36;
 
+  const visibleTrainings = useMemo(() => {
+    if (statusFilter === "ongoing") {
+      return trainings.filter((training) => training.status === "Ongoing");
+    }
+    return trainings;
+  }, [statusFilter, trainings]);
+
+  const scrollToCurrentDate = (baseMonth = new Date()) => {
+    const container = ganttScrollRef.current;
+    if (!container) {
+      return;
+    }
+
+    const visibleWidth = container.clientWidth;
+    const currentOffset = differenceInDays(new Date(), startOfMonth(subMonths(baseMonth, 1)));
+    const targetLeft = Math.max(currentOffset * cellWidth - visibleWidth / 2, 0);
+    container.scrollTo({ left: targetLeft, behavior: "smooth" });
+  };
+
   const trainerRows = useMemo(() => {
     let filteredTrainers = trainers;
     if (!isSupervisor) {
@@ -278,7 +299,7 @@ export default function PerformancePage() {
     }
     return filteredTrainers
       .map((trainer) => {
-        const trainerPrograms = trainings
+        const trainerPrograms = visibleTrainings
           .filter((tr) => String(tr.trainerId) === String(trainer.id))
           .map((prog) => ({ ...prog }));
         return {
@@ -290,7 +311,7 @@ export default function PerformancePage() {
         };
       })
       .filter((row) => row.programs.length > 0 || selectedTrainer !== "all");
-  }, [trainers, trainings, selectedTrainer, isSupervisor, trainerId]);
+  }, [trainers, visibleTrainings, selectedTrainer, isSupervisor, trainerId]);
 
   // Session counts per trainer for the current month
   const trainerSessionCounts = useMemo(() => {
@@ -298,7 +319,7 @@ export default function PerformancePage() {
     const monthEnd = endOfMonth(currentMonth);
     const counts = {};
     trainers.forEach(t => {
-      const trainerProgs = trainings.filter(tr => String(tr.trainerId) === String(t.id));
+      const trainerProgs = visibleTrainings.filter(tr => String(tr.trainerId) === String(t.id));
       const inMonth = trainerProgs.filter(p => {
         const s = parseISO(p.startDate);
         const e = parseISO(p.endDate);
@@ -311,20 +332,31 @@ export default function PerformancePage() {
       };
     });
     return counts;
-  }, [trainers, trainings, currentMonth]);
+  }, [trainers, visibleTrainings, currentMonth]);
 
   const kpi = useMemo(() => {
-    const relevantTrainings = isSupervisor ? trainings : trainings.filter((t) => t.trainerId === trainerId);
+    const relevantTrainings = isSupervisor
+      ? visibleTrainings
+      : visibleTrainings.filter((t) => t.trainerId === trainerId);
     return {
       total: relevantTrainings.length,
       completed: relevantTrainings.filter((t) => t.status === "Completed").length,
       ongoing: relevantTrainings.filter((t) => t.status === "Ongoing").length,
       upcoming: relevantTrainings.filter((t) => t.status === "Upcoming").length,
     };
-  }, [trainings, isSupervisor, trainerId]);
+  }, [visibleTrainings, isSupervisor, trainerId]);
 
   const handleProgramClick = (prog) => {
     navigate(`/calendar?date=${prog.startDate}&view=week`);
+  };
+
+  const handleCurrentView = () => {
+    const today = new Date();
+    setStatusFilter("ongoing");
+    setCurrentMonth(today);
+    requestAnimationFrame(() => {
+      scrollToCurrentDate(today);
+    });
   };
 
   return (
@@ -336,9 +368,12 @@ export default function PerformancePage() {
             {isSupervisor ? "All Trainer Progress" : "My Progress Timeline"}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {isSupervisor ? "Gantt view of all trainer programs across the organization" : "Your training program timeline"}
+            {isSupervisor ? "Gantt view of ongoing trainer programs across the organization" : "Your ongoing training program timeline"}
           </p>
         </div>
+        <Button variant="outline" size="sm" className="gap-2" onClick={handleCurrentView}>
+          <LocateFixed className="h-4 w-4" /> Current
+        </Button>
       </div>
 
       {isLoadingData && <p className="text-sm text-muted-foreground">Loading data...</p>}
@@ -348,14 +383,14 @@ export default function PerformancePage() {
       <>
       {/* KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
-        {[
+        {[ 
           { label: "Total Programs", value: kpi.total, icon: Activity, color: "text-primary bg-primary/10" },
-          { label: "Completed", value: kpi.completed, icon: CheckCircle2, color: "text-emerald-600 bg-emerald-100" },
-          { label: "Ongoing", value: kpi.ongoing, icon: Clock, color: "text-amber-600 bg-amber-100" },
-          { label: "Upcoming", value: kpi.upcoming, icon: CalendarDays, color: "text-sky-600 bg-sky-100" },
+          { label: "Completed", value: kpi.completed, icon: CheckCircle2, color: "text-muted-foreground bg-muted" },
+          { label: "Ongoing", value: kpi.ongoing, icon: Clock, color: "text-primary bg-primary/10" },
+          { label: "Upcoming", value: kpi.upcoming, icon: CalendarDays, color: "text-muted-foreground bg-muted" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow">
-            <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 ${color}`}>
+          <div key={label} className="flex items-center gap-4 rounded-[var(--radius-shell)] border border-border/50 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+            <div className={`h-11 w-11 rounded-[var(--radius-panel)] flex items-center justify-center shrink-0 ${color}`}>
               <Icon className="h-5 w-5" />
             </div>
             <div>
@@ -404,15 +439,24 @@ export default function PerformancePage() {
       </div>
 
       {/* Gantt Chart */}
-      <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 rounded-xl" style={{ maxWidth: '100%' }}>
-        <TrainerGantt
-          trainerRows={trainerRows}
-          rangeStart={rangeStart}
-          totalDays={totalDays}
-          cellWidth={cellWidth}
-          onProgramClick={handleProgramClick}
-          trainerSessionCounts={trainerSessionCounts}
-        />
+      <div ref={ganttScrollRef} className="flex-1 overflow-x-auto overflow-y-auto min-h-0 rounded-xl" style={{ maxWidth: '100%' }}>
+        {trainerRows.length > 0 ? (
+          <TrainerGantt
+            trainerRows={trainerRows}
+            rangeStart={rangeStart}
+            totalDays={totalDays}
+            cellWidth={cellWidth}
+            onProgramClick={handleProgramClick}
+            trainerSessionCounts={trainerSessionCounts}
+          />
+        ) : (
+          <div className="flex h-full min-h-[320px] items-center justify-center rounded-xl border border-border/50 bg-card text-center">
+            <div className="space-y-2 px-6">
+              <p className="text-lg font-bold text-foreground">No ongoing programs found</p>
+              <p className="text-sm text-muted-foreground">The progress page is currently focused on ongoing programs.</p>
+            </div>
+          </div>
+        )}
       </div>
       </>
       )}

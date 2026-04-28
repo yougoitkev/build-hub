@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, CalendarIcon } from "lucide-react";
+import { Search, CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronsUpDown } from "lucide-react";
 
 export function AttendanceFilters({
     onFilterChange,
@@ -24,8 +23,9 @@ export function AttendanceFilters({
     const [trainingName, setTrainingName] = useState(selectedTrainingId || "all");
     const [dateRange, setDateRange] = useState(selectedDateRange || { from: new Date(), to: new Date() });
     const [trainingOpen, setTrainingOpen] = useState(false);
+    const [dateOpen, setDateOpen] = useState(false);
 
-    const selectedTraining = trainings?.find(t => t.id === trainingName);
+    const selectedTraining = trainings?.find((t) => t.id === trainingName);
 
     useEffect(() => {
         setTrainingName(selectedTrainingId || "all");
@@ -37,22 +37,41 @@ export function AttendanceFilters({
         }
     }, [selectedDateRange]);
 
-    const handleApply = () => {
-        onFilterChange({ training: "", trainingName, dateRange });
+    const applyFilters = (nextTrainingName, nextDateRange) => {
+        onFilterChange({ training: "", trainingName: nextTrainingName, dateRange: nextDateRange });
+    };
+
+    const handleTrainingSelect = (nextTrainingName) => {
+        setTrainingName(nextTrainingName);
+        setTrainingOpen(false);
+        applyFilters(nextTrainingName, dateRange);
+    };
+
+    const handleDateRangeSelect = (nextDateRange) => {
+        setDateRange(nextDateRange);
+
+        if (nextDateRange?.from && nextDateRange?.to) {
+            setDateOpen(false);
+            applyFilters(trainingName, nextDateRange);
+        }
     };
 
     return (
-        <div className="flex flex-wrap gap-4 items-end bg-card p-4 rounded-xl border border-border/50 shadow-sm animate-fade-in">
+        <div className="surface-shell flex flex-wrap items-end gap-4 p-4 md:p-5 animate-fade-in">
             <div className="flex-1 min-w-[300px]">
+                <label className="section-kicker mb-2 block">Training</label>
                 <Popover open={trainingOpen} onOpenChange={setTrainingOpen}>
                     <PopoverTrigger asChild>
                         <Button
                             variant="outline"
                             role="combobox"
                             aria-expanded={trainingOpen}
-                            className="w-full h-11 justify-between font-normal bg-background"
+                            className={cn(
+                                "h-11 w-full justify-between font-normal",
+                                selectedTraining && selectedTraining.id === trainingName && "border-primary/20 bg-primary/[0.08]"
+                            )}
                         >
-                            <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                            <Search className="icon-neutral mr-2 h-4 w-4 shrink-0" />
                             {selectedTraining ? selectedTraining.title : "Search & select training..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -65,7 +84,7 @@ export function AttendanceFilters({
                                 <CommandGroup>
                                     <CommandItem
                                         value="all"
-                                        onSelect={() => { setTrainingName("all"); setTrainingOpen(false); }}
+                                        onSelect={() => handleTrainingSelect("all")}
                                     >
                                         <Check className={cn("mr-2 h-4 w-4", trainingName === "all" ? "opacity-100" : "opacity-0")} />
                                         All Trainings
@@ -74,7 +93,7 @@ export function AttendanceFilters({
                                         <CommandItem
                                             key={t.id}
                                             value={t.title}
-                                            onSelect={() => { setTrainingName(t.id); setTrainingOpen(false); }}
+                                            onSelect={() => handleTrainingSelect(t.id)}
                                         >
                                             <Check className={cn("mr-2 h-4 w-4", trainingName === t.id ? "opacity-100" : "opacity-0")} />
                                             <span className="flex-1 truncate">{t.title}</span>
@@ -91,17 +110,18 @@ export function AttendanceFilters({
             </div>
 
             <div className="w-[300px]">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">Day Range</label>
-                <Popover>
+                <label className="section-kicker mb-2 block">Day Range</label>
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
                     <PopoverTrigger asChild>
                         <Button
                             variant="outline"
                             className={cn(
-                                "w-full h-11 justify-start text-left font-normal border-border/50",
+                                "h-11 w-full justify-start text-left font-normal",
+                                dateRange?.from && dateRange?.to && "border-primary/20 bg-primary/[0.08]",
                                 !dateRange && "text-muted-foreground"
                             )}
                         >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            <CalendarIcon className="icon-neutral mr-2 h-4 w-4" />
                             {dateRange?.from ? (
                                 dateRange.to ? (
                                     <>
@@ -121,7 +141,7 @@ export function AttendanceFilters({
                             mode="range"
                             defaultMonth={dateRange?.from}
                             selected={dateRange}
-                            onSelect={setDateRange}
+                            onSelect={handleDateRangeSelect}
                             numberOfMonths={2}
                             disabled={(date) => {
                                 if (!availableDateRange?.from || !availableDateRange?.to) {
@@ -137,10 +157,6 @@ export function AttendanceFilters({
                     </PopoverContent>
                 </Popover>
             </div>
-
-            <Button onClick={handleApply} className="h-11 px-8 rounded-lg shadow-lg shadow-primary/20">
-                Apply Filters
-            </Button>
         </div>
     );
 }

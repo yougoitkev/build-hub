@@ -7,11 +7,12 @@ import { BulkActionsToolbar } from "@/components/attendance/BulkActionsToolbar";
 import { OverrideModal } from "@/components/attendance/OverrideModal";
 import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { History, Shield, Info, Users } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { ClipboardCheck, History, Shield, Info, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { api } from "@/data/api";
-import { parseISO, startOfDay } from "date-fns";
+import { format, parseISO, startOfDay } from "date-fns";
 
 const buildFullName = (firstName, lastName) => `${firstName || ""} ${lastName || ""}`.trim();
 
@@ -157,7 +158,7 @@ export default function AttendancePage() {
           api.attendance.list({ scheduled_training_id: trainingId }),
           api.scheduledTrainings.detail(trainingId),
         ]);
-        const roster = Array.isArray(response?.students) ? response.students.map(mapAttendanceStudent) : [];
+        const rosterFromResponse = Array.isArray(response?.students) ? response.students.map(mapAttendanceStudent) : [];
         const attendanceRows = Array.isArray(response?.attendance) ? response.attendance : [];
         const allDays = extractSelectedDays(attendanceRows);
         const scheduleSessions = Array.isArray(trainingDetailResponse?.sessions)
@@ -184,6 +185,9 @@ export default function AttendancePage() {
                   to: parseISO(fallbackTo),
                 }
               : null;
+
+        const detailRoster = Array.isArray(trainingDetailResponse?.students) ? trainingDetailResponse.students.map(mapAttendanceStudent) : [];
+        const roster = rosterFromResponse.length > 0 ? rosterFromResponse : detailRoster;
 
         setStudents(roster);
         setLocalAttendance(buildAttendanceMap(roster, attendanceRows));
@@ -222,14 +226,10 @@ export default function AttendancePage() {
           return;
         }
 
-        // Strict Strategy: Only show backend sessions that match the 35 target names
         const storeTrainings = useAppStore.getState().trainings || [];
-        const targetNames = storeTrainings.map(t => t.title.toLowerCase().trim());
-
-        // Merge Strategy: Combine API sessions with Mock Sessions (match by title)
         const mappedMockTrainings = storeTrainings
-          .filter(t => t.status === "Ongoing" || t.status === "Upcoming")
-          .map(t => ({
+          .filter((t) => t.status === "Ongoing" || t.status === "Upcoming")
+          .map((t) => ({
             id: String(t.id),
             trainingProgramId: String(t.id),
             title: t.title || "",
@@ -241,11 +241,7 @@ export default function AttendancePage() {
             endDate: t.endDate || "",
           }));
 
-        const combinedList = [...trainingList, ...mappedMockTrainings.filter(mt => !trainingList.some(at => at.title === mt.title))];
-        trainingList = combinedList.filter(t => 
-          targetNames.includes(t.title.toLowerCase().trim())
-        );
-
+        trainingList = [...trainingList, ...mappedMockTrainings.filter((mt) => !trainingList.some((at) => at.title === mt.title))];
         setTrainings(trainingList);
 
         const queryTrainingId = searchParams.get("trainingId");
@@ -296,7 +292,11 @@ export default function AttendancePage() {
     }
 
     const nextTraining = trainings.find((item) => String(item.id) === String(trainingName));
-    const filterDesc = [training && `Search: ${training}`, nextTraining && `Training: ${nextTraining.title}`]
+    const formattedDateRange =
+      dateRange?.from && dateRange?.to
+        ? `Days: ${format(dateRange.from, "MMM dd")} - ${format(dateRange.to, "MMM dd")}`
+        : "";
+    const filterDesc = [training && `Search: ${training}`, nextTraining && `Training: ${nextTraining.title}`, formattedDateRange]
       .filter(Boolean)
       .join(" | ") || "All Data";
 
@@ -409,33 +409,28 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto pb-20">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
-            Attendance Matrix
-            {selectedTraining && enrolledCount > selectedTraining.capacity && (
-              <span className="bg-destructive/10 text-destructive text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-destructive/20 animate-pulse">
-                Over Capacity by {enrolledCount - selectedTraining.capacity}
-              </span>
-            )}
-          </h1>
-          <div className="flex items-center gap-4 mt-1">
-            <p className="text-muted-foreground font-medium">Manage cohort hours, remarks and overrides at scale.</p>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10">
-              <Users className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                Enrolled: {enrolledCount}
-                {searchQuery && ` (Showing ${filteredStudents.length} of ${enrolledCount})`}
-              </span>
+    <div className="mx-auto max-w-[1600px] space-y-6 pb-20">
+      <PageHeader
+        icon={ClipboardCheck}
+        eyebrow="Daily Tracking"
+        title="Attendance Matrix"
+        description="Manage cohort hours, remarks and overrides at scale."
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-[var(--radius-field)] border border-primary/15 bg-primary/[0.08] px-3 py-1.5 text-xs font-semibold text-primary">
+              <Users className="h-3.5 w-3.5" />
+              Enrolled: {enrolledCount}
+              {searchQuery && ` (Showing ${filteredStudents.length} of ${enrolledCount})`}
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
-          <Info className="h-3.5 w-3.5" />
-          Keyboard: Use Tab/Arrows to navigate
-        </div>
-      </div>
+        }
+        actions={
+          <div className="inline-flex items-center gap-2 rounded-[var(--radius-field)] border border-border/60 bg-background/85 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <Info className="h-3.5 w-3.5" />
+            Keyboard: Tab / Arrows
+          </div>
+        }
+      />
 
       {isLoadingTrainings && <p className="text-sm text-muted-foreground">Loading data...</p>}
       {!isLoadingTrainings && fetchError && !isLoadingMatrix && <p className="text-sm text-destructive">Error in fetching data</p>}
@@ -450,7 +445,6 @@ export default function AttendancePage() {
             selectedDateRange={selectedDateRange}
             availableDateRange={trainingDateRange}
           />
-          
 
           <BulkActionsToolbar
             hasChanges={pendingChanges.length > 0}
@@ -462,7 +456,7 @@ export default function AttendancePage() {
           {isLoadingMatrix ? (
             <p className="text-sm text-muted-foreground">Loading data...</p>
           ) : (
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
               <div className="lg:col-span-3">
                 <AttendanceMatrix
                   students={filteredStudents}
@@ -471,27 +465,27 @@ export default function AttendancePage() {
                   trainingName={selectedTraining?.title || ""}
                   dayLabels={dayLabels}
                   onValueChange={handleValueChange}
-                  onRemarksEdit={(studentId, day) => toast.info(`Remarks editor for Day ${day} is not available yet.`)}
+                  onRemarksEdit={(_studentId, day) => toast.info(`Remarks editor for Day ${day} is not available yet.`)}
                 />
               </div>
 
               <div className="space-y-6">
-                <PremiumCard className="bg-primary/[0.02] border-primary/10 h-fit">
-                  <PremiumCardHeader className="pb-2 border-b border-primary/5">
-                    <PremiumCardTitle className="text-sm font-black uppercase tracking-widest text-primary/70 flex items-center gap-2">
-                      <History className="h-4 w-4" /> Recent Audit
+                <PremiumCard className="h-fit">
+                  <PremiumCardHeader className="border-b border-border/50 pb-2">
+                    <PremiumCardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-muted-foreground">
+                      <History className="h-4 w-4 text-primary" /> Recent Audit
                     </PremiumCardTitle>
                   </PremiumCardHeader>
                   <PremiumCardContent className="pt-4">
                     <div className="space-y-4">
                       {recentAudit.length > 0 ? recentAudit.map((entry) => (
-                        <div key={entry.id} className="relative pl-6 border-l-2 border-primary/10 pb-4 last:pb-0">
-                          <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-background border-2 border-primary/20 flex items-center justify-center">
+                        <div key={entry.id} className="relative border-l border-primary/15 pb-4 pl-6 last:pb-0">
+                          <div className="absolute -left-[7px] top-0 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-primary/20 bg-background">
                             <Shield className="h-2 w-2 text-primary" />
                           </div>
-                          <p className="text-xs font-bold text-foreground truncate">{entry.details || entry.action}</p>
-                          <p className="text-[9px] text-muted-foreground/60 mt-1 uppercase tracking-tighter">
-                            {entry.changed_by_name || "System"} · {new Date(entry.created_at).toLocaleTimeString()}
+                          <p className="truncate text-xs font-bold text-foreground">{entry.details || entry.action}</p>
+                          <p className="mt-1 text-[9px] uppercase tracking-tighter text-muted-foreground/70">
+                            {entry.changed_by_name || "System"} - {new Date(entry.created_at).toLocaleTimeString()}
                           </p>
                         </div>
                       )) : (
@@ -501,51 +495,48 @@ export default function AttendancePage() {
                   </PremiumCardContent>
                 </PremiumCard>
 
-                <div className="p-4 rounded-2xl bg-accent/5 border border-accent/10">
-                  <h4 className="text-[10px] font-black text-accent uppercase tracking-widest mb-3 flex items-center gap-2">
+                <div className="surface-shell-soft p-4">
+                  <h4 className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
                     <Shield className="h-3 w-3" /> Compliance Check
                   </h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     All overrides require valid business reasons. Audit logs are immutable and tracked for compliance reviews.
                   </p>
                 </div>
 
-                <PremiumCard className="bg-primary/[0.01] border-border/50">
-                  <PremiumCardHeader className="pb-2 border-b border-border/10">
-                    <PremiumCardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                      <Users className="h-3.5 w-3.5" /> Training Overview
+                <PremiumCard>
+                  <PremiumCardHeader className="border-b border-border/50 pb-2">
+                    <PremiumCardTitle className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground">
+                      <Users className="h-3.5 w-3.5 text-primary" /> Training Overview
                     </PremiumCardTitle>
                   </PremiumCardHeader>
-                  <PremiumCardContent className="pt-4 px-3">
+                  <PremiumCardContent className="px-3 pt-4">
                     <ScrollArea className="max-h-[280px]">
                       <div className="space-y-2">
-                      {trainings.map((training) => {
-                        const count = getEnrolledCount(training.id);
-                        const isOver = count > training.capacity;
-                        return (
-                          <div
-                            key={training.id}
-                            className={cn(
-                              "flex items-center justify-between p-2 rounded-lg border transition-colors cursor-pointer",
-                              String(selectedTrainingId) === String(training.id)
-                                ? "bg-primary/10 border-primary/20"
-                                : "bg-muted/30 border-border/50 hover:bg-muted/50"
-                            )}
-                            onClick={() => handleFilterChange({ trainingName: training.id })}
-                          >
-                            <div className="min-w-0 pr-2">
-                              <p className="text-xs font-bold text-foreground truncate">{training.title}</p>
-                              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{training.courseCode}</p>
+                        {trainings.map((training) => {
+                          const count = getEnrolledCount(training.id);
+                          return (
+                            <div
+                              key={training.id}
+                              className={cn(
+                                "flex cursor-pointer items-center justify-between rounded-[var(--radius-field)] border p-2.5 transition-colors",
+                                String(selectedTrainingId) === String(training.id)
+                                  ? "border-primary/15 bg-primary/[0.08]"
+                                  : "border-border/60 bg-background/80 hover:bg-secondary/70"
+                              )}
+                              onClick={() => handleFilterChange({ trainingName: training.id })}
+                            >
+                              <div className="min-w-0 pr-2">
+                                <p className="truncate text-xs font-bold text-foreground">{training.title}</p>
+                                <p className="text-[10px] font-medium uppercase tracking-tighter text-muted-foreground">{training.courseCode}</p>
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                <p className="text-xs font-black text-primary">{count}</p>
+                                <p className="text-[9px] font-bold uppercase tracking-tighter text-muted-foreground">Enrolled</p>
+                              </div>
                             </div>
-                            <div className="text-right flex-shrink-0">
-                              <p className={cn("text-xs font-black", isOver ? "text-destructive" : "text-primary")}>
-                                {count} / {training.capacity}
-                              </p>
-                              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Enrolled</p>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                       </div>
                       <ScrollBar orientation="vertical" />
                     </ScrollArea>

@@ -6,60 +6,73 @@
 
 @layer base {
   :root {
-    --background: 210 10% 97%;
-    --foreground: 210 11% 15%;
+    --brand-blue-100: 209 100% 87%;
+    --brand-blue-300: 208 98% 72%;
+    --brand-blue-500: 204 93% 49%;
+    --brand-blue-700: 205 96% 38%;
+    
+    /* Avatar Palette */
+    --avatar-bg: #BFE0FF;
+    --avatar-border: #71BCFE;
+    --avatar-icon: #0474BC;
+    --avatar-vibrant: #0796F0;
+
+    --background: 210 28% 97%;
+    --foreground: 212 27% 16%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 11% 15%;
+    --card-foreground: 212 27% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 11% 15%;
+    --popover-foreground: 212 27% 16%;
 
-    --primary: 198 21% 45%;
+    --primary: var(--brand-blue-500);
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 7% 92%;
-    --secondary-foreground: 210 11% 20%;
+    --secondary: 210 23% 93%;
+    --secondary-foreground: 212 18% 24%;
 
-    --muted: 210 10% 95%;
-    --muted-foreground: 208 7% 44%;
+    --muted: 210 26% 95%;
+    --muted-foreground: 213 12% 45%;
 
-    --accent: 198 21% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 209 78% 94%;
+    --accent-foreground: var(--brand-blue-700);
 
-    --destructive: 0 51% 66%;
+    --destructive: 0 67% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 5% 85%;
-    --input: 210 5% 85%;
-    --ring: 198 21% 45%;
+    --border: 212 24% 86%;
+    --input: 212 22% 84%;
+    --ring: var(--brand-blue-500);
 
-    --radius: 0.75rem;
+    --radius: 0.25rem;
+    --surface-gap: 0.125rem;
+    --radius-shell: calc(var(--radius) + var(--surface-gap));
+    --radius-panel: var(--radius);
+    --radius-field: var(--radius);
 
-    /* Custom tokens */
-    --success: 156 24% 59%;
+    --success: 160 48% 42%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 70% 55%;
+    --warning: 38 92% 48%;
     --warning-foreground: 0 0% 0%;
-    --info: 198 21% 45%;
+    --info: var(--brand-blue-500);
     --info-foreground: 0 0% 100%;
 
-    /* Status colors */
-    --status-active: 156 24% 59%;
-    --status-on-hold: 38 70% 55%;
-    --status-completed: 198 21% 45%;
-    --status-dropped: 0 51% 66%;
-    --status-not-started: 210 5% 70%;
-    --status-in-progress: 198 21% 55%;
+    --status-active: 160 48% 42%;
+    --status-on-hold: 38 92% 48%;
+    --status-completed: var(--brand-blue-500);
+    --status-dropped: 0 67% 54%;
+    --status-not-started: 212 12% 62%;
+    --status-in-progress: var(--brand-blue-300);
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 210 11% 15%;
-    --sidebar-primary: 198 21% 45%;
+    --sidebar-background: 210 30% 98%;
+    --sidebar-foreground: 212 27% 16%;
+    --sidebar-primary: var(--brand-blue-500);
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 10% 95%;
-    --sidebar-accent-foreground: 210 11% 15%;
-    --sidebar-border: 210 5% 85%;
-    --sidebar-ring: 198 21% 45%;
+    --sidebar-accent: 210 24% 94%;
+    --sidebar-accent-foreground: 212 20% 20%;
+    --sidebar-border: 212 24% 88%;
+    --sidebar-ring: var(--brand-blue-500);
   }
 
   .dark {
@@ -75,8 +88,8 @@
     --secondary-foreground: 210 15% 85%;
     --muted: 220 15% 16%;
     --muted-foreground: 215 12% 55%;
-    --accent: 172 50% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 215 28% 18%;
+    --accent-foreground: 210 15% 90%;
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
     --border: 220 15% 20%;
@@ -110,6 +123,55 @@
   h6 {
     @apply font-semibold tracking-tight;
   }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  .surface-shell {
+    border-radius: var(--radius-shell);
+    @apply border border-border/70 bg-card shadow-[0_10px_24px_-18px_rgba(15,23,42,0.24)];
+  }
+
+  .surface-shell-soft {
+    border-radius: var(--radius-shell);
+    @apply border border-border/65 bg-muted/35 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.18)];
+  }
+
+  .surface-panel {
+    border-radius: var(--radius-panel);
+    @apply border border-border/60 bg-muted/35;
+  }
+
+  .surface-field {
+    border-radius: var(--radius-field);
+    @apply border border-input bg-background shadow-[inset_0_1px_0_rgba(255,255,255,0.7)];
+  }
+
+  .surface-tint {
+    border-radius: var(--radius-panel);
+    @apply border border-primary/15 bg-primary/[0.06];
+  }
+
+  .table-shell {
+    border-radius: var(--radius-shell);
+    @apply overflow-hidden border border-border/70 bg-card shadow-[0_10px_24px_-18px_rgba(15,23,42,0.24)];
+  }
+
+  .icon-neutral {
+    @apply text-muted-foreground;
+  }
+
+  .icon-accent {
+    @apply text-primary;
+  }
+
+  .section-kicker {
+    @apply text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground;
+  }
 }
 
 @layer utilities {
@@ -118,37 +180,38 @@
     scrollbar-color: hsl(var(--border)) transparent;
   }
 
-  /* macOS / Apple Style Glass Utilities */
   .glass-panel {
-    @apply bg-background/70 backdrop-blur-2xl border border-border/40 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.08)];
+    background-color: hsl(var(--background) / 0.78);
+    @apply border border-border/45 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.18)] backdrop-blur-xl;
   }
 
   .glass-card {
-    @apply bg-card/60 backdrop-blur-xl border border-border/40 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 transition-all duration-500;
+    background-color: hsl(var(--card) / 0.72);
+    @apply border border-border/45 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.16)] backdrop-blur-lg transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-18px_rgba(15,23,42,0.22)];
   }
 
   .glass-surface {
-    @apply bg-card/40 backdrop-blur-2xl border border-border/30 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)];
+    background-color: hsl(var(--card) / 0.55);
+    @apply border border-border/35 shadow-[0_4px_16px_-10px_rgba(15,23,42,0.14)] backdrop-blur-xl;
   }
 
-  /* Ambient gradient mesh background — Apple-style */
   .ambient-bg {
     position: relative;
     isolation: isolate;
   }
+
   .ambient-bg::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     background:
-      radial-gradient(ellipse 80% 50% at 20% 0%, hsl(var(--primary) / 0.10), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 100% 30%, hsl(var(--accent) / 0.08), transparent 60%),
-      radial-gradient(ellipse 50% 40% at 50% 100%, hsl(var(--primary) / 0.06), transparent 70%);
+      radial-gradient(ellipse 80% 50% at 20% 0%, hsl(var(--primary) / 0.08), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 25%, hsl(var(--brand-blue-300) / 0.07), transparent 62%),
+      radial-gradient(ellipse 55% 40% at 50% 100%, hsl(var(--secondary) / 0.72), transparent 72%);
     pointer-events: none;
   }
 
-  /* Animations */
   @keyframes slide-in-bottom {
     0% {
       transform: translateY(20px);
@@ -181,30 +244,28 @@
     animation: fade-scale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  /* Smooth scroll across app */
   .smooth-scroll {
     scroll-behavior: smooth;
   }
 
-  /* Hide scrollbar for clean UI but allow scrolling */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
 
   .no-scrollbar {
     -ms-overflow-style: none;
-    /* IE and Edge */
     scrollbar-width: none;
-    /* Firefox */
   }
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 5px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+    @apply rounded-full bg-muted-foreground/20 transition-colors hover:bg-muted-foreground/40;
   }
 }
