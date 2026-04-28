@@ -323,11 +323,10 @@ export const deriveUtilizationPerformanceStatus = (utilizationPct) => {
   return "Below Target";
 };
 
-export const deriveComplianceStatus = ({ compliantCount = 0, requiredCount = 0, tracked = false }) => {
+export const deriveComplianceStatus = ({ compliantCount = 0, requiredCount = 0, transitionedCount = 0, tracked = false }) => {
   if (!tracked) return "Not Tracked";
   if (!requiredCount) return "Complete";
+  if (compliantCount < transitionedCount) return "Audit Failure";
   if (compliantCount >= requiredCount) return "Complete";
-  if (compliantCount === 0) return "Audit Failure";
   return "At Risk";
 };
-

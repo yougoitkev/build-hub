@@ -123,6 +123,20 @@ const MODULES = {
     icon: BarChart3,
     description: "Productivity, billable time, and utilization",
   },
+  compliance: {
+    id: "compliance",
+    title: "Compliance Tracking",
+    url: "/compliance",
+    icon: Shield,
+    description: "Manual compliance tracking and audit readiness",
+  },
+  kpi: {
+    id: "kpi",
+    title: "KPI Scorecards",
+    url: "/kpi",
+    icon: TrendingUp,
+    description: "Trainer and batch KPI performance scorecards",
+  },
   progress: {
     id: "progress",
     title: "Progress",
@@ -211,7 +225,7 @@ const NAVIGATION_SCHEMAS = {
     {
       title: "Operations",
       icon: Activity,
-      items: ["calendar", "progress", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "skillsMatrix"],
+      items: ["calendar", "compliance", "kpi", "progress", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "skillsMatrix"],
     },
     {
       title: "Governance",
@@ -232,7 +246,7 @@ const NAVIGATION_SCHEMAS = {
     {
       title: "Operations",
       icon: Activity,
-      items: ["calendar", "progress", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "skillsMatrix"],
+      items: ["calendar", "compliance", "kpi", "progress", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "skillsMatrix"],
     },
     {
       title: "Governance",
@@ -244,8 +258,8 @@ const NAVIGATION_SCHEMAS = {
 
 const QUICK_ACTION_IDS = {
   trainer: ["attendance", "observations", "calendar", "progress", "leaveRequests", "tasks", "materials", "certifications"],
-  supervisor: ["calendar", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "progress", "reports", "audit"],
-  admin: ["calendar", "trainerAttendance", "trainerObservations", "trainerUtilization", "reports", "audit", "feedback", "materials"],
+  supervisor: ["calendar", "compliance", "kpi", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "reports"],
+  admin: ["calendar", "compliance", "kpi", "trainerAttendance", "trainerObservations", "trainerUtilization", "reports", "audit"],
 };
 
 export const getRoleMeta = (role) => TMS_ROLE_META[role] || TMS_ROLE_META.trainer;
@@ -261,4 +275,3 @@ export const getNavigationGroups = (role) => {
 export const getQuickActions = (role) => (QUICK_ACTION_IDS[role] || QUICK_ACTION_IDS.trainer).map((moduleId) => MODULES[moduleId]);
 
 export const getModuleByRoute = (route) => Object.values(MODULES).find((module) => module.url === route) || null;
-

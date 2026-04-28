@@ -15,6 +15,8 @@ import TrainersPage from "./pages/TrainersPage";
 import TrainerAttendancePage from "./pages/TrainerAttendancePage";
 import TrainerObservationsPage from "./pages/TrainerObservationsPage";
 import TrainerUtilizationPage from "./pages/TrainerUtilizationPage";
+import ComplianceTrackingPage from "./pages/ComplianceTrackingPage";
+import KpiPage from "./pages/KpiPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import TrainerFormPage from "./pages/TrainerFormPage";
 import FeedbackPage from "./pages/FeedbackPage";
@@ -61,6 +63,8 @@ const App = () => (
                     <Route path="/attendance" element={<AttendancePage />} />
                     <Route path="/leave-requests" element={<LeaveRequestsPage />} />
                     <Route path="/observations" element={<ObservationsPage />} />
+                    <Route path="/compliance" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><ComplianceTrackingPage /></RequireAuth>} />
+                    <Route path="/kpi" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><KpiPage /></RequireAuth>} />
                     <Route path="/progress" element={<PerformancePage />} />
                     <Route path="/trainers" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainersPage /></RequireAuth>} />
                     <Route path="/trainer-attendance" element={<RequireAuth allowedRoles={['supervisor', 'admin']}><TrainerAttendancePage /></RequireAuth>} />

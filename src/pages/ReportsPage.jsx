@@ -172,9 +172,15 @@ function AnalyticsTable({ columns, rows, emptyMessage }) {
 }
 
 export default function ReportsPage() {
+  const user = useAppStore((state) => state.user);
   const storeStudents = useAppStore((state) => state.students);
   const storeEnrollments = useAppStore((state) => state.enrollments);
   const storeFeedback = useAppStore((state) => state.feedback);
+  const storeObservations = useAppStore((state) => state.observations);
+  const storeComplianceItems = useAppStore((state) => state.complianceItems);
+  const storeComplianceRecords = useAppStore((state) => state.complianceRecords);
+  const storeKpiManualEntries = useAppStore((state) => state.kpiManualEntries);
+  const storeKpiTargets = useAppStore((state) => state.kpiTargets);
 
   const [latestImport, setLatestImport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -192,6 +198,7 @@ export default function ReportsPage() {
   const [localTransitionData, setLocalTransitionData] = useState(null);
   const [localKPIData, setLocalKPIData] = useState(null);
   const [isLocalLoading, setIsLocalLoading] = useState(false);
+  const canViewGovernanceReports = user?.role === "supervisor" || user?.role === "admin";
 
   const loadData = useCallback(async () => {
     try {
@@ -321,8 +328,16 @@ export default function ReportsPage() {
 
   const importStatus = useMemo(() => buildImportStatus(latestImport), [latestImport]);
   const complianceRows = useMemo(
-    () => buildComplianceRows({ trainings, sessions, students, enrollments: storeEnrollments, trainers }),
-    [storeEnrollments, students, sessions, trainers, trainings],
+    () => buildComplianceRows({
+      trainings,
+      sessions,
+      students,
+      enrollments: storeEnrollments,
+      trainers,
+      complianceRecords: storeComplianceRecords,
+      complianceItems: storeComplianceItems,
+    }),
+    [storeComplianceItems, storeComplianceRecords, storeEnrollments, students, sessions, trainers, trainings],
   );
   const scorecardRows = useMemo(
     () =>
@@ -334,13 +349,26 @@ export default function ReportsPage() {
         enrollments: storeEnrollments,
         trainerUtilization,
         trainerObservations,
+        observations: storeObservations,
         feedback,
+        complianceRecords: storeComplianceRecords,
+        complianceItems: storeComplianceItems,
+        kpiManualEntries: storeKpiManualEntries,
+        kpiTargets: storeKpiTargets,
       }).sort((left, right) => right.overallScore - left.overallScore),
-    [feedback, storeEnrollments, students, sessions, trainerObservations, trainerUtilization, trainers, trainings],
+    [feedback, storeComplianceItems, storeComplianceRecords, storeEnrollments, storeKpiManualEntries, storeKpiTargets, storeObservations, students, sessions, trainerObservations, trainerUtilization, trainers, trainings],
   );
   const transitionRows = useMemo(
-    () => buildTransitionRows({ trainings, sessions, students, enrollments: storeEnrollments, trainers }),
-    [storeEnrollments, students, sessions, trainers, trainings],
+    () => buildTransitionRows({
+      trainings,
+      sessions,
+      students,
+      enrollments: storeEnrollments,
+      trainers,
+      complianceRecords: storeComplianceRecords,
+      complianceItems: storeComplianceItems,
+    }),
+    [storeComplianceItems, storeComplianceRecords, storeEnrollments, students, sessions, trainers, trainings],
   );
   const absenceRows = useMemo(
     () => buildWeeklyAbsenceRows({ trainerAttendance, trainers, availability }),
@@ -397,10 +425,12 @@ export default function ReportsPage() {
         description="Centralized exports for compliance coverage, trainer KPI scorecards, transition reporting, and weekly absence visibility."
         meta={
           <>
-            <StatusBadge status={summary.complianceAtRisk > 0 ? "At Risk" : "Complete"} domain="compliance" />
-            <div className="rounded-full border border-primary/10 bg-background/70 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              {scorecardRows.length} trainer scorecards
-            </div>
+            {canViewGovernanceReports ? <StatusBadge status={summary.complianceAtRisk > 0 ? "At Risk" : "Complete"} domain="compliance" /> : null}
+            {canViewGovernanceReports ? (
+              <div className="rounded-full border border-primary/10 bg-background/70 px-3 py-1 text-xs font-semibold text-muted-foreground">
+                {scorecardRows.length} trainer scorecards
+              </div>
+            ) : null}
           </>
         }
         actions={
@@ -413,21 +443,21 @@ export default function ReportsPage() {
       {isLoading && <p className="text-sm text-muted-foreground">Loading reporting data...</p>}
       {!isLoading && fetchError && <p className="text-sm text-destructive">Some report data could not be loaded.</p>}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <PremiumCard>
+        <div className={`grid gap-4 ${canViewGovernanceReports ? "md:grid-cols-4" : "md:grid-cols-2"}`}>
+        {canViewGovernanceReports ? <PremiumCard>
           <PremiumCardContent className="p-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Compliance Risks</p>
             <p className="mt-3 text-3xl font-bold">{summary.complianceAtRisk}</p>
             <p className="mt-1 text-xs text-muted-foreground">Cohorts not yet fully compliant</p>
           </PremiumCardContent>
-        </PremiumCard>
-        <PremiumCard>
+        </PremiumCard> : null}
+        {canViewGovernanceReports ? <PremiumCard>
           <PremiumCardContent className="p-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">High Performing Trainers</p>
             <p className="mt-3 text-3xl font-bold">{summary.highPerformers}</p>
             <p className="mt-1 text-xs text-muted-foreground">Scorecards at 80+ overall score</p>
           </PremiumCardContent>
-        </PremiumCard>
+        </PremiumCard> : null}
         <PremiumCard>
           <PremiumCardContent className="p-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Ready For Transition</p>
@@ -447,8 +477,8 @@ export default function ReportsPage() {
       <Tabs defaultValue="exports" className="space-y-4">
         <TabsList className="flex w-fit flex-wrap rounded-full border border-border/50 bg-background/70 p-1">
           <TabsTrigger value="exports" className="rounded-full">Exports</TabsTrigger>
-          <TabsTrigger value="compliance" className="rounded-full">Compliance</TabsTrigger>
-          <TabsTrigger value="scorecards" className="rounded-full">KPI Scorecards</TabsTrigger>
+          {canViewGovernanceReports ? <TabsTrigger value="compliance" className="rounded-full">Compliance</TabsTrigger> : null}
+          {canViewGovernanceReports ? <TabsTrigger value="scorecards" className="rounded-full">KPI Scorecards</TabsTrigger> : null}
           <TabsTrigger value="transition" className="rounded-full">Transition</TabsTrigger>
           <TabsTrigger value="absence" className="rounded-full">Absence</TabsTrigger>
           <TabsTrigger value="deep-insights" className="rounded-full">Deep Insights (Backend)</TabsTrigger>
@@ -513,7 +543,7 @@ export default function ReportsPage() {
           </PremiumCard>
         </TabsContent>
 
-        <TabsContent value="compliance">
+        {canViewGovernanceReports ? <TabsContent value="compliance">
           <PremiumCard>
             <PremiumCardHeader className="flex flex-row items-center justify-between gap-3">
               <PremiumCardTitle className="flex items-center gap-2 text-lg">
@@ -531,9 +561,12 @@ export default function ReportsPage() {
                   { key: "cohort", label: "Cohort" },
                   { key: "trainer", label: "Trainer" },
                   { key: "month", label: "Month" },
+                  { key: "startedLearners", label: "Started", cellClassName: "text-center" },
+                  { key: "transitionedLearners", label: "Transitioned", cellClassName: "text-center" },
                   { key: "coveragePct", label: "Coverage", render: (value) => `${value}%` },
                   { key: "requiredLearners", label: "Required", cellClassName: "text-center" },
                   { key: "compliantLearners", label: "Compliant", cellClassName: "text-center" },
+                  { key: "shortfallCount", label: "Shortfall", cellClassName: "text-center" },
                   { key: "status", label: "Status", render: (value) => <StatusBadge status={value} domain="compliance" /> },
                 ]}
                 rows={complianceRows}
@@ -541,9 +574,9 @@ export default function ReportsPage() {
               />
             </PremiumCardContent>
           </PremiumCard>
-        </TabsContent>
+        </TabsContent> : null}
 
-        <TabsContent value="scorecards">
+        {canViewGovernanceReports ? <TabsContent value="scorecards">
           <PremiumCard>
             <PremiumCardHeader className="flex flex-row items-center justify-between gap-3">
               <PremiumCardTitle className="flex items-center gap-2 text-lg">
@@ -581,6 +614,8 @@ export default function ReportsPage() {
                     ),
                   },
                   { key: "compliancePct", label: "Compliance", render: (value) => `${value}%` },
+                  { key: "knowledgeRetentionScore", label: "Knowledge", render: (value) => value === null || value === undefined ? "Pending" : `${value}%` },
+                  { key: "qualityScore", label: "Quality", render: (value) => value === null || value === undefined ? "Pending" : `${value}%` },
                   { key: "throughputPct", label: "Throughput", render: (value) => `${value}%` },
                   { key: "attritionPct", label: "Attrition", render: (value) => `${value}%` },
                 ]}
@@ -589,7 +624,7 @@ export default function ReportsPage() {
               />
             </PremiumCardContent>
           </PremiumCard>
-        </TabsContent>
+        </TabsContent> : null}
 
         <TabsContent value="transition">
           <PremiumCard>

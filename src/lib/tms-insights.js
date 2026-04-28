@@ -1,7 +1,7 @@
 import { differenceInCalendarDays, format, isBefore, parseISO, startOfDay } from "date-fns";
+import { buildComplianceSummary as buildComplianceSummaryData } from "@/lib/compliance-kpi";
 import {
   deriveCertificationStatus,
-  deriveComplianceStatus,
   deriveObservationPerformanceStatus,
   deriveTrainingProgramStatus,
   deriveUtilizationPerformanceStatus,
@@ -38,59 +38,22 @@ const getStudentIdsForTraining = (training, sessions = [], enrollments = []) => 
   return [...new Set(fromSessions)];
 };
 
-const isComplianceReady = (student) => {
-  const explicitStatus = String(student?.complianceStatus || "").trim().toLowerCase();
-  if (explicitStatus) {
-    return explicitStatus === "complete" || explicitStatus === "completed" || explicitStatus === "approved";
-  }
-
-  if (student?.complianceComplete === true || student?.complianceCompleted === true) {
-    return true;
-  }
-
-  // Current app does not yet have a dedicated compliance entity everywhere.
-  // Use level completion as a temporary readiness proxy until explicit compliance fields are wired.
-  return [student?.level1, student?.level2, student?.level3].some((level) => String(level).toLowerCase() === "complete");
-};
-
-export const buildComplianceSummary = ({ trainings = [], sessions = [], students = [], enrollments = [] }) => {
-  const studentMap = new Map(students.map((student) => [String(student.id), student]));
-  const tracked =
-    students.some((student) => student?.complianceStatus || student?.complianceComplete !== undefined || student?.complianceCompleted !== undefined) ||
-    trainings.length > 0;
-
-  const cohorts = trainings
-    .map((training) => {
-      const studentIds = getStudentIdsForTraining(training, sessions, enrollments);
-      const cohortStudents = studentIds.map((studentId) => studentMap.get(studentId)).filter(Boolean);
-      const compliantCount = cohortStudents.filter(isComplianceReady).length;
-      const requiredCount = cohortStudents.length;
-      const status = deriveComplianceStatus({ compliantCount, requiredCount, tracked });
-      return {
-        id: String(training.id),
-        title: training.title || "Program",
-        status,
-        compliantCount,
-        requiredCount,
-        coveragePct: requiredCount ? Math.round((compliantCount / requiredCount) * 100) : 0,
-      };
-    })
-    .filter((cohort) => cohort.requiredCount > 0);
-
-  const compliantCount = cohorts.reduce((total, cohort) => total + cohort.compliantCount, 0);
-  const requiredCount = cohorts.reduce((total, cohort) => total + cohort.requiredCount, 0);
-  const status = deriveComplianceStatus({ compliantCount, requiredCount, tracked });
-
-  return {
-    tracked,
-    status,
-    compliantCount,
-    requiredCount,
-    coveragePct: requiredCount ? Math.round((compliantCount / requiredCount) * 100) : 0,
-    atRiskCount: cohorts.filter((cohort) => cohort.status === "At Risk" || cohort.status === "Audit Failure").length,
-    cohorts,
-  };
-};
+export const buildComplianceSummary = ({
+  trainings = [],
+  sessions = [],
+  students = [],
+  enrollments = [],
+  complianceRecords = [],
+  complianceItems = [],
+}) =>
+  buildComplianceSummaryData({
+    trainings,
+    sessions,
+    students,
+    enrollments,
+    complianceRecords,
+    complianceItems,
+  });
 
 export const detectScheduleConflicts = (sessions = []) => {
   const conflicts = [];
@@ -178,11 +141,13 @@ export const buildOperationalAlerts = ({
   trainerObservations = [],
   students = [],
   enrollments = [],
+  complianceRecords = [],
+  complianceItems = [],
   tasks = [],
 }) => {
   const alerts = [];
   const scheduleConflicts = detectScheduleConflicts(sessions);
-  const complianceSummary = buildComplianceSummary({ trainings, sessions, students, enrollments });
+  const complianceSummary = buildComplianceSummary({ trainings, sessions, students, enrollments, complianceRecords, complianceItems });
   const observationSummaries = buildTrainerObservationSummaries(trainerObservations);
   const utilizationSummaries = buildUtilizationSummaries(trainerUtilization);
   const today = startOfDay(new Date());
@@ -244,13 +209,13 @@ export const buildOperationalAlerts = ({
     });
   }
 
-  if (complianceSummary.atRiskCount > 0) {
+  if (complianceSummary.atRiskCount > 0 && role !== "trainer") {
     alerts.push({
       id: "compliance",
       severity: "critical",
       title: "Compliance coverage risk",
       detail: `${complianceSummary.atRiskCount} cohort${complianceSummary.atRiskCount === 1 ? "" : "s"} do not meet the current readiness/compliance coverage rule.`,
-      link: "/progress",
+      link: "/compliance",
     });
   }
 
@@ -308,4 +273,3 @@ export const buildProgramPipeline = (trainings = []) =>
     },
     { completed: 0, ongoing: 0, upcoming: 0 },
   );
-

@@ -1,9 +1,12 @@
 import { format, getISOWeek, parseISO, startOfMonth } from "date-fns";
 import {
-  buildComplianceSummary,
   buildTrainerObservationSummaries,
   buildUtilizationSummaries,
 } from "@/lib/tms-insights";
+import {
+  buildComplianceSummary,
+  buildTrainerKpiRows as buildTrainerKpiRowsData,
+} from "@/lib/compliance-kpi";
 import {
   deriveLearnerCompletion,
   deriveObservationPerformanceStatus,
@@ -96,8 +99,16 @@ export const downloadRowsAsCsv = (rows, filename) => {
   return true;
 };
 
-export const buildComplianceRows = ({ trainings = [], sessions = [], students = [], enrollments = [], trainers = [] }) => {
-  const summary = buildComplianceSummary({ trainings, sessions, students, enrollments });
+export const buildComplianceRows = ({
+  trainings = [],
+  sessions = [],
+  students = [],
+  enrollments = [],
+  trainers = [],
+  complianceRecords = [],
+  complianceItems = [],
+}) => {
+  const summary = buildComplianceSummary({ trainings, sessions, students, enrollments, complianceRecords, complianceItems });
   const trainerMap = new Map(trainers.map((trainer) => [toId(trainer.id), normalizeTrainerName(trainer)]));
   const trainingMap = new Map(trainings.map((training) => [toId(training.id), training]));
 
@@ -109,6 +120,9 @@ export const buildComplianceRows = ({ trainings = [], sessions = [], students = 
       month: normalizeMonth(training?.startDate || training?.start_date),
       compliantLearners: cohort.compliantCount,
       requiredLearners: cohort.requiredCount,
+      startedLearners: cohort.startedCount,
+      transitionedLearners: cohort.transitionedCount,
+      shortfallCount: cohort.shortfallCount,
       coveragePct: cohort.coveragePct,
       status: cohort.status,
       startDate: training?.startDate || training?.start_date || "",
@@ -117,11 +131,19 @@ export const buildComplianceRows = ({ trainings = [], sessions = [], students = 
   });
 };
 
-export const buildTransitionRows = ({ trainings = [], sessions = [], students = [], enrollments = [], trainers = [] }) => {
+export const buildTransitionRows = ({
+  trainings = [],
+  sessions = [],
+  students = [],
+  enrollments = [],
+  trainers = [],
+  complianceRecords = [],
+  complianceItems = [],
+}) => {
   const studentMap = new Map(students.map((student) => [toId(student.id), student]));
   const trainerMap = new Map(trainers.map((trainer) => [toId(trainer.id), normalizeTrainerName(trainer)]));
   const complianceMap = new Map(
-    buildComplianceRows({ trainings, sessions, students, enrollments, trainers }).map((row) => [row.cohort, row]),
+    buildComplianceRows({ trainings, sessions, students, enrollments, trainers, complianceRecords, complianceItems }).map((row) => [row.cohort, row]),
   );
 
   return trainings.map((training) => {
@@ -163,63 +185,53 @@ export const buildTrainerScorecardRows = ({
   enrollments = [],
   trainerUtilization = [],
   trainerObservations = [],
+  observations = [],
   feedback = [],
-}) => {
-  const trainerMap = new Map(trainers.map((trainer) => [toId(trainer.id), trainer]));
-  const studentMap = new Map(students.map((student) => [toId(student.id), student]));
-  const utilizationMap = new Map(
-    buildUtilizationSummaries(trainerUtilization).map((entry) => [toId(entry.trainerId), entry]),
-  );
-  const observationMap = new Map(
-    buildTrainerObservationSummaries(trainerObservations).map((entry) => [toId(entry.trainerId), entry]),
-  );
-
-  return [...trainerMap.keys()].map((trainerId) => {
-    const trainer = trainerMap.get(trainerId);
-    const trainerPrograms = trainings.filter((training) => toId(training.trainerId || training.trainer_id) === trainerId);
-    const learnerIds = new Set(
-      trainerPrograms.flatMap((training) => getStudentIdsForTraining(training, sessions, enrollments)).concat(
-        students.filter((student) => toId(student.trainerId || student.trainer_id) === trainerId).map((student) => toId(student.id)),
-      ),
-    );
-    const learnerRecords = [...learnerIds].map((studentId) => studentMap.get(studentId)).filter(Boolean);
-    const learnerStates = learnerRecords.map((student) => deriveLearnerCompletion(student));
-    const completedLearners = learnerStates.filter((entry) => entry.status === "Completed").length;
-    const readyLearners = learnerStates.filter((entry) => entry.status === "Ready for Transition" || entry.status === "Completed").length;
-    const attritionCount = learnerRecords.filter((student) => ["dropped", "leave", "on hold"].includes(String(student.status || "").toLowerCase())).length;
-    const avgCompletion = Math.round(average(learnerStates.map((entry) => entry.completionPct)));
-    const utilizationEntry = utilizationMap.get(trainerId);
-    const observationEntry = observationMap.get(trainerId);
-    const feedbackEntries = feedback.filter((entry) => toId(entry.trainerId || entry.trainer_id) === trainerId);
-    const feedbackAvg = Math.round(average(feedbackEntries.map((entry) => Number(entry.rating || 0))) * 10) / 10;
-    const compliancePct = learnerRecords.length ? Math.round((readyLearners / learnerRecords.length) * 100) : 0;
-    const throughputPct = learnerRecords.length ? Math.round((completedLearners / learnerRecords.length) * 100) : 0;
-    const attritionPct = learnerRecords.length ? Math.round((attritionCount / learnerRecords.length) * 100) : 0;
-    const observationScore = Math.round((Number(observationEntry?.averageScore || 0) / 5) * 100);
-    const satisfactionPct = Math.round((feedbackAvg / 5) * 100);
-    const utilizationPct = Number(utilizationEntry?.utilizationPct || 0);
-    const overallScore = Math.round(
-      average([utilizationPct, observationScore || 0, compliancePct, throughputPct, satisfactionPct || 0, 100 - attritionPct]),
-    );
-
-    return {
-      trainer: normalizeTrainerName(trainer),
-      activePrograms: trainerPrograms.filter((program) => deriveTrainingProgramStatus(program) !== "Completed").length,
-      completedPrograms: trainerPrograms.filter((program) => deriveTrainingProgramStatus(program) === "Completed").length,
-      learnersTracked: learnerRecords.length,
-      utilizationPct,
-      utilizationStatus: deriveUtilizationPerformanceStatus(utilizationPct),
-      observationScore,
-      observationStatus: deriveObservationPerformanceStatus(Number(observationEntry?.averageScore || 0)),
-      compliancePct,
-      throughputPct,
-      attritionPct,
-      avgLearnerCompletion: avgCompletion,
-      satisfactionPct,
-      overallScore,
-    };
-  });
-};
+  complianceRecords = [],
+  complianceItems = [],
+  kpiManualEntries = [],
+  kpiTargets = [],
+  fromDate,
+  toDate,
+}) =>
+  buildTrainerKpiRowsData({
+    trainers,
+    trainings,
+    sessions,
+    students,
+    enrollments,
+    trainerUtilization,
+    trainerObservations,
+    observations,
+    feedback,
+    complianceRecords,
+    complianceItems,
+    kpiManualEntries,
+    kpiTargets,
+    fromDate,
+    toDate,
+  }).map((row) => ({
+    trainer: row.trainer,
+    trainerId: row.trainerId,
+    activePrograms: row.activePrograms,
+    completedPrograms: trainings.filter((program) => toId(program.trainerId || program.trainer_id) === row.trainerId && deriveTrainingProgramStatus(program) === "Completed").length,
+    learnersTracked: row.learnersTracked,
+    utilizationPct: row.utilizationPct ?? 0,
+    utilizationStatus: row.utilizationPct === null ? "Pending Input" : deriveUtilizationPerformanceStatus(row.utilizationPct),
+    observationScore: row.observationScore ?? 0,
+    observationStatus: row.observationScore === null ? "Pending Input" : deriveObservationPerformanceStatus((row.observationScore / 100) * 5),
+    compliancePct: row.compliancePct ?? 0,
+    throughputPct: row.throughputPct ?? 0,
+    attritionPct: row.attritionPct ?? 0,
+    knowledgeRetentionScore: row.knowledgeRetentionScore,
+    qualityScore: row.qualityScore,
+    satisfactionPct: row.satisfactionPct,
+    overallScore: row.overallScore,
+    belowTargetMetrics: row.belowTargetMetrics,
+    pendingMetrics: row.pendingMetrics,
+    metricDetails: row.metricDetails,
+    manualEntries: row.manualEntries,
+  }));
 
 export const buildRoomUsageRows = ({ sessions = [], trainings = [] }) => {
   const trainingMap = new Map(trainings.map((training) => [toId(training.id), training]));

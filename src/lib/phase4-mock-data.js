@@ -1,0 +1,86 @@
+export const complianceStatuses = ["Not Started", "In Progress", "Completed", "Waived"];
+
+export const mockComplianceItems = [
+  {
+    id: "comp-aml",
+    name: "AML Compliance",
+    category: "Regulatory",
+    requiredBeforeCalls: true,
+    active: true,
+    description: "Core anti-money-laundering completion required before call handling.",
+  },
+  {
+    id: "comp-privacy",
+    name: "Data Privacy",
+    category: "Security",
+    requiredBeforeCalls: true,
+    active: true,
+    description: "Privacy and customer data handling attestation.",
+  },
+  {
+    id: "comp-call-readiness",
+    name: "Call Readiness Sign-Off",
+    category: "Operations",
+    requiredBeforeCalls: true,
+    active: true,
+    description: "Manual trainer or supervisor sign-off that the learner is cleared for calls.",
+  },
+];
+
+export const mockComplianceRecords = [
+  { id: "cr-1", learnerId: "s1", learnerName: "Maria Garcia", trainerId: "t1", trainingId: "tr1", itemId: "comp-aml", status: "Completed", completedAt: "2026-03-03", source: "manual", notes: "Workbook confirmed", updatedAt: "2026-03-03T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-2", learnerId: "s1", learnerName: "Maria Garcia", trainerId: "t1", trainingId: "tr1", itemId: "comp-privacy", status: "Completed", completedAt: "2026-03-03", source: "manual", notes: "", updatedAt: "2026-03-03T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-3", learnerId: "s1", learnerName: "Maria Garcia", trainerId: "t1", trainingId: "tr1", itemId: "comp-call-readiness", status: "Completed", completedAt: "2026-03-04", source: "manual", notes: "Signed off after lab", updatedAt: "2026-03-04T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-4", learnerId: "s2", learnerName: "Wei Chen", trainerId: "t1", trainingId: "tr1", itemId: "comp-aml", status: "Completed", completedAt: "2026-03-04", source: "manual", notes: "", updatedAt: "2026-03-04T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-5", learnerId: "s2", learnerName: "Wei Chen", trainerId: "t1", trainingId: "tr1", itemId: "comp-privacy", status: "Completed", completedAt: "2026-03-04", source: "manual", notes: "", updatedAt: "2026-03-04T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-6", learnerId: "s2", learnerName: "Wei Chen", trainerId: "t1", trainingId: "tr1", itemId: "comp-call-readiness", status: "In Progress", completedAt: "", source: "manual", notes: "Waiting for coaching follow-up", updatedAt: "2026-03-05T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-7", learnerId: "s4", learnerName: "Ravi Patel", trainerId: "t1", trainingId: "tr1", itemId: "comp-aml", status: "Completed", completedAt: "2026-03-03", source: "manual", notes: "", updatedAt: "2026-03-03T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-8", learnerId: "s4", learnerName: "Ravi Patel", trainerId: "t1", trainingId: "tr1", itemId: "comp-privacy", status: "Completed", completedAt: "2026-03-03", source: "manual", notes: "", updatedAt: "2026-03-03T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-9", learnerId: "s4", learnerName: "Ravi Patel", trainerId: "t1", trainingId: "tr1", itemId: "comp-call-readiness", status: "Completed", completedAt: "2026-03-04", source: "manual", notes: "", updatedAt: "2026-03-04T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-10", learnerId: "s5", learnerName: "Jordan Williams", trainerId: "t1", trainingId: "tr1", itemId: "comp-aml", status: "Completed", completedAt: "2026-03-05", source: "manual", notes: "", updatedAt: "2026-03-05T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-11", learnerId: "s5", learnerName: "Jordan Williams", trainerId: "t1", trainingId: "tr1", itemId: "comp-privacy", status: "In Progress", completedAt: "", source: "manual", notes: "Needs acknowledgement", updatedAt: "2026-03-05T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-12", learnerId: "s5", learnerName: "Jordan Williams", trainerId: "t1", trainingId: "tr1", itemId: "comp-call-readiness", status: "Not Started", completedAt: "", source: "manual", notes: "", updatedAt: "2026-03-05T17:00:00.000Z", updatedBy: "t1" },
+  { id: "cr-13", learnerId: "s6", learnerName: "Taylor Brown", trainerId: "t2", trainingId: "tr2", itemId: "comp-aml", status: "Completed", completedAt: "2026-03-16", source: "manual", notes: "", updatedAt: "2026-03-16T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-14", learnerId: "s6", learnerName: "Taylor Brown", trainerId: "t2", trainingId: "tr2", itemId: "comp-privacy", status: "Completed", completedAt: "2026-03-16", source: "manual", notes: "", updatedAt: "2026-03-16T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-15", learnerId: "s6", learnerName: "Taylor Brown", trainerId: "t2", trainingId: "tr2", itemId: "comp-call-readiness", status: "Completed", completedAt: "2026-03-18", source: "manual", notes: "", updatedAt: "2026-03-18T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-16", learnerId: "s7", learnerName: "Morgan Davis", trainerId: "t2", trainingId: "tr2", itemId: "comp-aml", status: "Completed", completedAt: "2026-03-17", source: "manual", notes: "", updatedAt: "2026-03-17T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-17", learnerId: "s7", learnerName: "Morgan Davis", trainerId: "t2", trainingId: "tr2", itemId: "comp-privacy", status: "Completed", completedAt: "2026-03-17", source: "manual", notes: "", updatedAt: "2026-03-17T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-18", learnerId: "s7", learnerName: "Morgan Davis", trainerId: "t2", trainingId: "tr2", itemId: "comp-call-readiness", status: "Completed", completedAt: "2026-03-20", source: "manual", notes: "", updatedAt: "2026-03-20T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-19", learnerId: "s8", learnerName: "Ana Martinez", trainerId: "t2", trainingId: "tr2", itemId: "comp-aml", status: "Completed", completedAt: "2026-03-18", source: "manual", notes: "", updatedAt: "2026-03-18T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-20", learnerId: "s8", learnerName: "Ana Martinez", trainerId: "t2", trainingId: "tr2", itemId: "comp-privacy", status: "In Progress", completedAt: "", source: "manual", notes: "", updatedAt: "2026-03-18T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-21", learnerId: "s8", learnerName: "Ana Martinez", trainerId: "t2", trainingId: "tr2", itemId: "comp-call-readiness", status: "Not Started", completedAt: "", source: "manual", notes: "", updatedAt: "2026-03-18T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-22", learnerId: "s10", learnerName: "Jamie Thomas", trainerId: "t2", trainingId: "tr2", itemId: "comp-aml", status: "Completed", completedAt: "2026-03-20", source: "manual", notes: "", updatedAt: "2026-03-20T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-23", learnerId: "s10", learnerName: "Jamie Thomas", trainerId: "t2", trainingId: "tr2", itemId: "comp-privacy", status: "Completed", completedAt: "2026-03-20", source: "manual", notes: "", updatedAt: "2026-03-20T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-24", learnerId: "s10", learnerName: "Jamie Thomas", trainerId: "t2", trainingId: "tr2", itemId: "comp-call-readiness", status: "Completed", completedAt: "2026-03-21", source: "manual", notes: "", updatedAt: "2026-03-21T17:00:00.000Z", updatedBy: "t2" },
+  { id: "cr-25", learnerId: "s11", learnerName: "Riley Jackson", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-aml", status: "Completed", completedAt: "2026-04-01", source: "manual", notes: "", updatedAt: "2026-04-01T17:00:00.000Z", updatedBy: "sup1" },
+  { id: "cr-26", learnerId: "s11", learnerName: "Riley Jackson", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-privacy", status: "Completed", completedAt: "2026-04-01", source: "manual", notes: "", updatedAt: "2026-04-01T17:00:00.000Z", updatedBy: "sup1" },
+  { id: "cr-27", learnerId: "s11", learnerName: "Riley Jackson", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-call-readiness", status: "Completed", completedAt: "2026-04-02", source: "manual", notes: "", updatedAt: "2026-04-02T17:00:00.000Z", updatedBy: "sup1" },
+  { id: "cr-28", learnerId: "s12", learnerName: "Casey White", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-aml", status: "Completed", completedAt: "2026-04-01", source: "manual", notes: "", updatedAt: "2026-04-01T17:00:00.000Z", updatedBy: "sup1" },
+  { id: "cr-29", learnerId: "s12", learnerName: "Casey White", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-privacy", status: "Completed", completedAt: "2026-04-01", source: "manual", notes: "", updatedAt: "2026-04-01T17:00:00.000Z", updatedBy: "sup1" },
+  { id: "cr-30", learnerId: "s12", learnerName: "Casey White", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-call-readiness", status: "In Progress", completedAt: "", source: "manual", notes: "Needs extra TSYS practice", updatedAt: "2026-04-02T17:00:00.000Z", updatedBy: "sup1" },
+  { id: "cr-31", learnerId: "s13", learnerName: "Jordan Harris", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-aml", status: "Completed", completedAt: "2026-04-01", source: "manual", notes: "", updatedAt: "2026-04-01T17:00:00.000Z", updatedBy: "sup1" },
+  { id: "cr-32", learnerId: "s13", learnerName: "Jordan Harris", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-privacy", status: "Completed", completedAt: "2026-04-01", source: "manual", notes: "", updatedAt: "2026-04-01T17:00:00.000Z", updatedBy: "sup1" },
+  { id: "cr-33", learnerId: "s13", learnerName: "Jordan Harris", trainerId: "t3", trainingId: "tr-demo-2", itemId: "comp-call-readiness", status: "Completed", completedAt: "2026-04-01", source: "manual", notes: "Cleared for calls", updatedAt: "2026-04-01T17:00:00.000Z", updatedBy: "sup1" },
+];
+
+export const mockKpiTargets = [
+  { id: "kpi-target-utilization", metricKey: "utilizationPct", label: "Utilization", targetValue: 80, direction: "min", weight: 1.2, editable: true },
+  { id: "kpi-target-compliance", metricKey: "compliancePct", label: "Compliance Completion", targetValue: 100, direction: "min", weight: 1.4, editable: true },
+  { id: "kpi-target-knowledge", metricKey: "knowledgeRetentionScore", label: "Knowledge Retention", targetValue: 85, direction: "min", weight: 1.1, editable: true },
+  { id: "kpi-target-observation", metricKey: "observationScore", label: "Observation Score", targetValue: 80, direction: "min", weight: 1.1, editable: true },
+  { id: "kpi-target-throughput", metricKey: "throughputPct", label: "Throughput", targetValue: 85, direction: "min", weight: 1.1, editable: true },
+  { id: "kpi-target-attrition", metricKey: "attritionPct", label: "Attrition", targetValue: 10, direction: "max", weight: 1, editable: true },
+  { id: "kpi-target-quality", metricKey: "qualityScore", label: "Nesting / Quality", targetValue: 88, direction: "min", weight: 1.1, editable: true },
+  { id: "kpi-target-satisfaction", metricKey: "satisfactionPct", label: "Trainer Satisfaction", targetValue: 85, direction: "min", weight: 0.9, editable: true },
+];
+
+export const mockKpiManualEntries = [
+  { id: "kpi-manual-1", trainerId: "t1", trainingId: "tr1", metricKey: "knowledgeRetentionScore", value: 91, effectiveDate: "2026-03-12", source: "manual", notes: "End-of-batch retention assessment", enteredBy: "sup1", updatedAt: "2026-03-12T18:00:00.000Z" },
+  { id: "kpi-manual-2", trainerId: "t1", trainingId: "tr1", metricKey: "qualityScore", value: 93, effectiveDate: "2026-03-12", source: "manual", notes: "Nesting sign-off and QA review", enteredBy: "sup1", updatedAt: "2026-03-12T18:00:00.000Z" },
+  { id: "kpi-manual-3", trainerId: "t2", trainingId: "tr2", metricKey: "knowledgeRetentionScore", value: 84, effectiveDate: "2026-03-25", source: "manual", notes: "Knowledge check average", enteredBy: "sup2", updatedAt: "2026-03-25T18:00:00.000Z" },
+  { id: "kpi-manual-4", trainerId: "t2", trainingId: "tr2", metricKey: "qualityScore", value: 80, effectiveDate: "2026-03-25", source: "manual", notes: "Nesting observations require follow-up", enteredBy: "sup2", updatedAt: "2026-03-25T18:00:00.000Z" },
+  { id: "kpi-manual-5", trainerId: "t3", trainingId: "tr-demo-2", metricKey: "knowledgeRetentionScore", value: 78, effectiveDate: "2026-04-02", source: "manual", notes: "AML checkpoint shows knowledge gaps", enteredBy: "sup1", updatedAt: "2026-04-02T18:00:00.000Z" },
+  { id: "kpi-manual-6", trainerId: "t3", trainingId: "tr-demo-2", metricKey: "qualityScore", value: 74, effectiveDate: "2026-04-02", source: "manual", notes: "Call-readiness shortfall still open", enteredBy: "sup1", updatedAt: "2026-04-02T18:00:00.000Z" },
+  { id: "kpi-manual-7", trainerId: "t4", trainingId: "tr6", metricKey: "qualityScore", value: 95, effectiveDate: "2026-04-14", source: "manual", notes: "Collections nesting passed with distinction", enteredBy: "sup3", updatedAt: "2026-04-14T18:00:00.000Z" },
+  { id: "kpi-manual-8", trainerId: "t4", trainingId: "tr6", metricKey: "knowledgeRetentionScore", value: 92, effectiveDate: "2026-04-14", source: "manual", notes: "Assessment and lab retention score", enteredBy: "sup3", updatedAt: "2026-04-14T18:00:00.000Z" },
+];

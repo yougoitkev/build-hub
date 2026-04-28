@@ -4,6 +4,7 @@ import { mockStudents, mockTrainers, mockSessions, mockAttendance, mockObservati
 import { mockTieredAttendance, mockAuditEntries } from "@/lib/import-mock-data";
 import { mockTrainerAttendance, mockTrainerObservations, mockTrainerUtilization } from "@/lib/phase2-mock-data";
 import { mockTrainerSkills, mockAvailability, mockTasks, mockMaterials, mockCertifications } from "@/lib/phase3-mock-data";
+import { mockComplianceItems, mockComplianceRecords, mockKpiManualEntries, mockKpiTargets } from "@/lib/phase4-mock-data";
 import { addDays, isWeekend, format, parseISO } from "date-fns";
 
 export const useAppStore = create(persist((set, get) => ({
@@ -32,6 +33,10 @@ export const useAppStore = create(persist((set, get) => ({
   tasks: mockTasks,
   materials: mockMaterials,
   certifications: mockCertifications,
+  complianceItems: mockComplianceItems,
+  complianceRecords: mockComplianceRecords,
+  kpiTargets: mockKpiTargets,
+  kpiManualEntries: mockKpiManualEntries,
   notifications: [
     { id: "n1", message: "New feedback received from Supervisor", read: false, date: "2026-03-03" },
     { id: "n2", message: "Import completed: 47 records processed", read: true, date: "2026-03-03" },
@@ -60,6 +65,9 @@ export const useAppStore = create(persist((set, get) => ({
   setTasks: (tasks) => set({ tasks }),
   setMaterials: (materials) => set({ materials }),
   setCertifications: (certifications) => set({ certifications }),
+  setComplianceRecords: (records) => set({ complianceRecords: records }),
+  setKpiManualEntries: (entries) => set({ kpiManualEntries: entries }),
+  setKpiTargets: (targets) => set({ kpiTargets: targets }),
 
   logAdminEvent: (event) => set((s) => ({
     adminLogs: [{
@@ -70,6 +78,91 @@ export const useAppStore = create(persist((set, get) => ({
       role: s.user?.role
     }, ...s.adminLogs].slice(0, 100)
   })),
+
+  upsertComplianceRecords: ({ trainingId, trainerId, learnerId, learnerName, updates = [], notes = "" }) => {
+    const actor = get().user;
+    const now = new Date().toISOString();
+
+    set((state) => {
+      const nextRecords = [...state.complianceRecords];
+
+      updates.forEach((update) => {
+        const recordIndex = nextRecords.findIndex((record) =>
+          String(record.trainingId) === String(trainingId) &&
+          String(record.learnerId) === String(learnerId) &&
+          String(record.itemId) === String(update.itemId),
+        );
+
+        const nextRecord = {
+          id: recordIndex >= 0 ? nextRecords[recordIndex].id : `comp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          learnerId,
+          learnerName,
+          trainerId,
+          trainingId,
+          itemId: update.itemId,
+          status: update.status,
+          completedAt: update.completedAt || "",
+          source: "manual",
+          notes: update.notes ?? notes,
+          updatedAt: now,
+          updatedBy: actor?.trainerId || actor?.id || "system",
+        };
+
+        if (recordIndex >= 0) {
+          nextRecords[recordIndex] = {
+            ...nextRecords[recordIndex],
+            ...nextRecord,
+          };
+        } else {
+          nextRecords.push(nextRecord);
+        }
+      });
+
+      return { complianceRecords: nextRecords };
+    });
+
+    get().logAdminEvent({
+      action: "Compliance Updated",
+      entityId: `${trainingId}:${learnerId}`,
+      payloadSummary: `Updated ${updates.length} compliance item(s) for ${learnerName}.`,
+    });
+  },
+
+  addKpiManualEntry: (entry) => {
+    const actor = get().user;
+    const now = new Date().toISOString();
+    const nextEntry = {
+      id: `kpi-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      source: "manual",
+      enteredBy: actor?.trainerId || actor?.id || "system",
+      updatedAt: now,
+      ...entry,
+    };
+
+    set((state) => ({
+      kpiManualEntries: [nextEntry, ...state.kpiManualEntries],
+    }));
+
+    get().logAdminEvent({
+      action: "KPI Manual Entry Added",
+      entityId: nextEntry.id,
+      payloadSummary: `Captured ${nextEntry.metricKey} for trainer ${nextEntry.trainerId}${nextEntry.trainingId ? ` (${nextEntry.trainingId})` : ""}.`,
+    });
+  },
+
+  updateKpiTarget: (metricKey, changes) => {
+    set((state) => ({
+      kpiTargets: state.kpiTargets.map((target) =>
+        target.metricKey === metricKey ? { ...target, ...changes } : target,
+      ),
+    }));
+
+    get().logAdminEvent({
+      action: "KPI Target Updated",
+      entityId: metricKey,
+      payloadSummary: `Updated KPI target for ${metricKey}.`,
+    });
+  },
 
   createTrainingProgram: (payload) => {
     const { metadata, studentIds, startDate, rules } = payload;

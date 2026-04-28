@@ -241,6 +241,8 @@ function SupervisorDashboard() {
   const notifications = useAppStore((state) => state.notifications);
   const students = useAppStore((state) => state.students);
   const enrollments = useAppStore((state) => state.enrollments);
+  const complianceItems = useAppStore((state) => state.complianceItems);
+  const complianceRecords = useAppStore((state) => state.complianceRecords);
 
   const { trainers, scheduledTrainings, sessions, isLoadingData, fetchError } = useDashboardData();
   const roleMeta = getRoleMeta(user?.role || "supervisor");
@@ -290,9 +292,11 @@ function SupervisorDashboard() {
         trainerObservations,
         students,
         enrollments,
+        complianceRecords,
+        complianceItems,
         tasks,
       }),
-    [sessions, trainings, availability, certifications, trainerUtilization, trainerObservations, students, enrollments, tasks],
+    [sessions, trainings, availability, certifications, trainerUtilization, trainerObservations, students, enrollments, complianceRecords, complianceItems, tasks],
   );
   const pipeline = useMemo(() => buildProgramPipeline(trainings), [trainings]);
   const recentActivity = useMemo(() => buildRecentActivityFeed({ adminLogs, notifications }), [adminLogs, notifications]);
@@ -493,6 +497,8 @@ function TrainerDashboard() {
   const enrollments = useAppStore((state) => state.enrollments);
   const notifications = useAppStore((state) => state.notifications);
   const adminLogs = useAppStore((state) => state.adminLogs);
+  const complianceItems = useAppStore((state) => state.complianceItems);
+  const complianceRecords = useAppStore((state) => state.complianceRecords);
 
   const { trainers, scheduledTrainings, sessions, isLoadingData, fetchError } = useDashboardData();
   const roleMeta = getRoleMeta(user?.role || "trainer");
@@ -556,9 +562,11 @@ function TrainerDashboard() {
         trainerUtilization: [],
         students,
         enrollments,
+        complianceRecords,
+        complianceItems,
         tasks: myTasks,
       }),
-    [mySessions, myTrainings, myAvailability, myCertifications, students, enrollments, myTasks],
+    [mySessions, myTrainings, myAvailability, myCertifications, students, enrollments, complianceRecords, complianceItems, myTasks],
   );
   const recentActivity = useMemo(() => buildRecentActivityFeed({ adminLogs, notifications }), [adminLogs, notifications]);
 
