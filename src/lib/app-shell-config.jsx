@@ -225,7 +225,7 @@ const NAVIGATION_SCHEMAS = {
     {
       title: "Operations",
       icon: Activity,
-      items: ["calendar", "compliance", "kpi", "progress", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "skillsMatrix"],
+      items: ["calendar", "progress", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "skillsMatrix", "compliance", "kpi"],
     },
     {
       title: "Governance",
@@ -246,7 +246,7 @@ const NAVIGATION_SCHEMAS = {
     {
       title: "Operations",
       icon: Activity,
-      items: ["calendar", "compliance", "kpi", "progress", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "skillsMatrix"],
+      items: ["calendar", "progress", "trainerAttendance", "leaveRequests", "trainerObservations", "trainerUtilization", "skillsMatrix", "compliance", "kpi"],
     },
     {
       title: "Governance",

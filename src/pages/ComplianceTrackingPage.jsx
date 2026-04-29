@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Plus, ShieldCheck, Users } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Plus, ShieldCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { PremiumCard, PremiumCardContent, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
+import { PremiumCard, PremiumCardContent, PremiumCardDescription, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +17,14 @@ import { useAppStore } from "@/store/app-store";
 
 const ALL_VALUE = "all";
 
+const defaultEditorState = {
+  trainingId: "",
+  learnerId: "",
+  notes: "",
+  itemStatuses: {},
+  itemDates: {},
+};
+
 const resolveTrainerIdForUser = (user) => String(user?.trainerId || user?.id || "");
 
 const formatTrainerName = (trainer) =>
@@ -26,13 +34,26 @@ const formatTrainerName = (trainer) =>
 
 const getTrainingLabel = (training) => training?.title || training?.courseCode || training?.id || "Program";
 
-const defaultEditorState = {
-  trainingId: "",
-  learnerId: "",
-  notes: "",
-  itemStatuses: {},
-  itemDates: {},
-};
+function FilterField({ label, children }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, detail }) {
+  return (
+    <PremiumCard>
+      <PremiumCardContent className="p-5">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+        <p className="mt-3 text-3xl font-bold">{value}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+      </PremiumCardContent>
+    </PremiumCard>
+  );
+}
 
 export default function ComplianceTrackingPage() {
   const user = useAppStore((state) => state.user);
@@ -132,6 +153,7 @@ export default function ComplianceTrackingPage() {
 
   const learnerOptions = filteredLearnerRows.length ? filteredLearnerRows : learnerRows;
   const canEditTraining = !isTrainer || (selectedTraining && String(selectedTraining.trainerId || selectedTraining.trainer_id) === currentTrainerId);
+  const visibleItems = complianceItems.filter((item) => item?.active !== false);
 
   const openEditor = (learnerRow = null) => {
     if (!selectedTrainingId) {
@@ -143,7 +165,7 @@ export default function ComplianceTrackingPage() {
     const nextStatuses = {};
     const nextDates = {};
 
-    complianceItems.forEach((item) => {
+    visibleItems.forEach((item) => {
       const existing = nextLearnerRow?.itemStates?.find((state) => state.itemId === item.id);
       nextStatuses[item.id] = existing?.status || "Not Started";
       nextDates[item.id] = existing?.completedAt || "";
@@ -164,7 +186,7 @@ export default function ComplianceTrackingPage() {
     const nextStatuses = {};
     const nextDates = {};
 
-    complianceItems.forEach((item) => {
+    visibleItems.forEach((item) => {
       const existing = learnerRow?.itemStates?.find((state) => state.itemId === item.id);
       nextStatuses[item.id] = existing?.status || "Not Started";
       nextDates[item.id] = existing?.completedAt || "";
@@ -192,7 +214,7 @@ export default function ComplianceTrackingPage() {
       return;
     }
 
-    const updates = complianceItems.map((item) => ({
+    const updates = visibleItems.map((item) => ({
       itemId: item.id,
       status: editor.itemStatuses[item.id] || "Not Started",
       completedAt: editor.itemDates[item.id] || "",
@@ -214,17 +236,17 @@ export default function ComplianceTrackingPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto space-y-6">
       <PageHeader
         icon={ShieldCheck}
         eyebrow="Compliance"
         title="Compliance Tracking"
-        description="Track learner compliance completion by class, trainer, and learner through a supervisor-owned manual entry workflow that stays connected to the rest of the TMS."
+        description="Supervisor-managed manual compliance tracking for learner readiness, class coverage, and audit-safe pre-call compliance monitoring."
         meta={
           <>
             <StatusBadge status={complianceSummary.status} domain="compliance" />
             <div className="rounded-full border border-border/60 bg-background/70 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              {complianceSummary.requiredItems.length} required items
+              {visibleItems.length} required items
             </div>
           </>
         }
@@ -236,47 +258,22 @@ export default function ComplianceTrackingPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-5">
-        <PremiumCard>
-          <PremiumCardContent className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Started</p>
-            <p className="mt-3 text-3xl font-bold">{complianceSummary.requiredCount}</p>
-          </PremiumCardContent>
-        </PremiumCard>
-        <PremiumCard>
-          <PremiumCardContent className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Transitioned</p>
-            <p className="mt-3 text-3xl font-bold">{complianceSummary.transitionedCount}</p>
-          </PremiumCardContent>
-        </PremiumCard>
-        <PremiumCard>
-          <PremiumCardContent className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Compliant</p>
-            <p className="mt-3 text-3xl font-bold">{complianceSummary.compliantCount}</p>
-          </PremiumCardContent>
-        </PremiumCard>
-        <PremiumCard>
-          <PremiumCardContent className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Completion %</p>
-            <p className="mt-3 text-3xl font-bold">{complianceSummary.coveragePct}%</p>
-          </PremiumCardContent>
-        </PremiumCard>
-        <PremiumCard>
-          <PremiumCardContent className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Shortfall</p>
-            <p className="mt-3 text-3xl font-bold">{complianceSummary.shortfallCount}</p>
-          </PremiumCardContent>
-        </PremiumCard>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <SummaryCard label="Started" value={complianceSummary.requiredCount} detail="Learners tracked in scope" />
+        <SummaryCard label="Transitioned" value={complianceSummary.transitionedCount} detail="Learners marked ready or completed" />
+        <SummaryCard label="Compliant" value={complianceSummary.compliantCount} detail="Learners meeting all required items" />
+        <SummaryCard label="Completion" value={`${complianceSummary.coveragePct}%`} detail="Current compliance completion rate" />
+        <SummaryCard label="Shortfall" value={complianceSummary.shortfallCount} detail="Compliance gap against transition readiness" />
       </div>
 
       <PremiumCard>
         <PremiumCardHeader>
           <PremiumCardTitle className="text-lg">Filters</PremiumCardTitle>
+          <PremiumCardDescription>Filter compliance tracking by trainer, class, learner, and date range.</PremiumCardDescription>
         </PremiumCardHeader>
-        <PremiumCardContent className="grid gap-4 md:grid-cols-5">
-          {!isTrainer && (
-            <div className="space-y-2">
-              <Label>Trainer</Label>
+        <PremiumCardContent className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+          {!isTrainer ? (
+            <FilterField label="Trainer">
               <Select value={trainerFilter} onValueChange={setTrainerFilter}>
                 <SelectTrigger><SelectValue placeholder="All trainers" /></SelectTrigger>
                 <SelectContent>
@@ -286,12 +283,17 @@ export default function ComplianceTrackingPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          )}
+            </FilterField>
+          ) : null}
 
-          <div className="space-y-2">
-            <Label>Class / Batch</Label>
-            <Select value={trainingFilter} onValueChange={(value) => { setTrainingFilter(value); setLearnerFilter(ALL_VALUE); }}>
+          <FilterField label="Class / Batch">
+            <Select
+              value={trainingFilter}
+              onValueChange={(value) => {
+                setTrainingFilter(value);
+                setLearnerFilter(ALL_VALUE);
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_VALUE}>All classes</SelectItem>
@@ -300,10 +302,9 @@ export default function ComplianceTrackingPage() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FilterField>
 
-          <div className="space-y-2">
-            <Label>Learner</Label>
+          <FilterField label="Learner">
             <Select value={learnerFilter} onValueChange={setLearnerFilter}>
               <SelectTrigger><SelectValue placeholder="All learners" /></SelectTrigger>
               <SelectContent>
@@ -313,21 +314,35 @@ export default function ComplianceTrackingPage() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FilterField>
 
-          <div className="space-y-2">
-            <Label>From</Label>
+          <FilterField label="From">
             <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-          </div>
+          </FilterField>
 
-          <div className="space-y-2">
-            <Label>To</Label>
+          <FilterField label="To">
             <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+          </FilterField>
+
+          <div className="flex items-end">
+            <Button
+              variant="outline"
+              className="w-full rounded-full"
+              onClick={() => {
+                setTrainerFilter(isTrainer ? currentTrainerId : ALL_VALUE);
+                setTrainingFilter(ALL_VALUE);
+                setLearnerFilter(ALL_VALUE);
+                setDateFrom("");
+                setDateTo("");
+              }}
+            >
+              Reset Filters
+            </Button>
           </div>
         </PremiumCardContent>
       </PremiumCard>
 
-      {complianceSummary.shortfallCount > 0 && (
+      {complianceSummary.shortfallCount > 0 ? (
         <div className="rounded-2xl border border-destructive/35 bg-destructive/5 px-5 py-4 text-sm text-destructive">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
@@ -339,73 +354,25 @@ export default function ComplianceTrackingPage() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      <Tabs defaultValue="summary" className="space-y-4">
+      <Tabs defaultValue="learners" className="space-y-4">
         <TabsList className="flex w-fit flex-wrap rounded-full border border-border/50 bg-background/70 p-1">
-          <TabsTrigger value="summary" className="rounded-full">Class Summary</TabsTrigger>
           <TabsTrigger value="learners" className="rounded-full">Learner Detail</TabsTrigger>
-          <TabsTrigger value="trainers" className="rounded-full">Trainer View</TabsTrigger>
+          <TabsTrigger value="summary" className="rounded-full">Class Summary</TabsTrigger>
+          <TabsTrigger value="trainers" className="rounded-full">Trainer Summary</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="summary">
-          <PremiumCard>
-            <PremiumCardHeader>
-              <PremiumCardTitle className="flex items-center gap-2 text-lg">
-                <ClipboardCheck className="h-5 w-5 text-primary" />
-                Cohort Compliance Coverage
-              </PremiumCardTitle>
-            </PremiumCardHeader>
-            <PremiumCardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead>Class / Batch</TableHead>
-                      <TableHead>Trainer</TableHead>
-                      <TableHead className="text-center">Started</TableHead>
-                      <TableHead className="text-center">Transitioned</TableHead>
-                      <TableHead className="text-center">Compliant</TableHead>
-                      <TableHead className="text-center">Coverage</TableHead>
-                      <TableHead className="text-center">Shortfall</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {complianceSummary.cohorts.length ? (
-                      complianceSummary.cohorts.map((cohort) => (
-                        <TableRow key={cohort.id}>
-                          <TableCell className="font-medium">{cohort.title}</TableCell>
-                          <TableCell>{trainers.find((trainer) => String(trainer.id) === String(cohort.trainerId))?.name || "Unassigned"}</TableCell>
-                          <TableCell className="text-center">{cohort.startedCount}</TableCell>
-                          <TableCell className="text-center">{cohort.transitionedCount}</TableCell>
-                          <TableCell className="text-center">{cohort.compliantCount}</TableCell>
-                          <TableCell className="text-center">{cohort.coveragePct}%</TableCell>
-                          <TableCell className="text-center">{cohort.shortfallCount}</TableCell>
-                          <TableCell><StatusBadge status={cohort.status} domain="compliance" /></TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                          No compliance cohorts match the current filters.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </PremiumCardContent>
-          </PremiumCard>
-        </TabsContent>
 
         <TabsContent value="learners">
           <PremiumCard>
             <PremiumCardHeader className="flex flex-row items-center justify-between gap-3">
-              <PremiumCardTitle className="flex items-center gap-2 text-lg">
-                <Users className="h-5 w-5 text-primary" />
-                Learner Compliance Detail
-              </PremiumCardTitle>
+              <div>
+                <PremiumCardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                  Learner Compliance Detail
+                </PremiumCardTitle>
+                <PremiumCardDescription>Manual item-by-item compliance entry linked to the selected class and learner.</PremiumCardDescription>
+              </div>
               <Button variant="outline" className="rounded-full" onClick={() => openEditor()} disabled={!selectedTrainingId || !canEditTraining}>
                 <Plus className="mr-2 h-4 w-4" />
                 Update Learner
@@ -417,62 +384,106 @@ export default function ComplianceTrackingPage() {
                   Select a class or batch to review learner-level compliance and enter manual updates.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/30">
-                        <TableHead>Learner</TableHead>
-                        <TableHead>Lifecycle</TableHead>
-                        <TableHead>Compliance</TableHead>
-                        <TableHead>Items</TableHead>
-                        <TableHead>Last Completed</TableHead>
-                        <TableHead>Status Detail</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLearnerRows.length ? (
-                        filteredLearnerRows.map((learner) => (
-                          <TableRow key={learner.learnerId}>
-                            <TableCell className="font-medium">{learner.learnerName}</TableCell>
-                            <TableCell><StatusBadge status={learner.lifecycle.status} domain="learner" /></TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="font-semibold">{learner.completionPct}%</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {learner.completedItems}/{learner.requiredItems} items complete
-                                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead>Learner</TableHead>
+                      <TableHead>Lifecycle</TableHead>
+                      <TableHead>Completion</TableHead>
+                      {visibleItems.map((item) => (
+                        <TableHead key={item.id}>{item.name}</TableHead>
+                      ))}
+                      <TableHead>Last Completed</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLearnerRows.length ? (
+                      filteredLearnerRows.map((learner) => (
+                        <TableRow key={learner.learnerId}>
+                          <TableCell className="font-medium">{learner.learnerName}</TableCell>
+                          <TableCell><StatusBadge status={learner.lifecycle.status} domain="learner" /></TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-semibold">{learner.completionPct}%</div>
+                              <div className="text-xs text-muted-foreground">
+                                {learner.completedItems}/{learner.requiredItems} items complete
                               </div>
-                            </TableCell>
-                            <TableCell>{learner.completedItems}/{learner.requiredItems}</TableCell>
-                            <TableCell>{learner.lastCompletedAt || "Pending"}</TableCell>
-                            <TableCell className="max-w-[260px] text-xs text-muted-foreground">
-                              <div className="flex flex-wrap gap-1">
-                                {learner.itemStates.map((item) => (
-                                  <span key={item.itemId} className="rounded-full border border-border/60 px-2 py-1">
-                                    {item.itemName}: {item.status}
-                                  </span>
-                                ))}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="sm" onClick={() => openEditor(learner)} disabled={!canEditTraining}>
-                                Edit
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
-                            No learners match the current filters.
+                            </div>
+                          </TableCell>
+                          {visibleItems.map((item) => {
+                            const itemState = learner.itemStates.find((state) => String(state.itemId) === String(item.id));
+                            return (
+                              <TableCell key={item.id}>
+                                <StatusBadge status={itemState?.status || "Not Started"} domain="compliance" />
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell>{learner.lastCompletedAt || "Pending"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => openEditor(learner)} disabled={!canEditTraining}>
+                              Edit
+                            </Button>
                           </TableCell>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={visibleItems.length + 5} className="py-8 text-center text-sm text-muted-foreground">
+                          No learners match the current filters.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               )}
+            </PremiumCardContent>
+          </PremiumCard>
+        </TabsContent>
+
+        <TabsContent value="summary">
+          <PremiumCard>
+            <PremiumCardHeader>
+              <PremiumCardTitle className="text-lg">Class Compliance Summary</PremiumCardTitle>
+              <PremiumCardDescription>Coverage, transition readiness, and shortfall risk by cohort.</PremiumCardDescription>
+            </PremiumCardHeader>
+            <PremiumCardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead>Class / Batch</TableHead>
+                    <TableHead>Trainer</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead>Transitioned</TableHead>
+                    <TableHead>Compliant</TableHead>
+                    <TableHead>Coverage</TableHead>
+                    <TableHead>Shortfall</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {complianceSummary.cohorts.length ? (
+                    complianceSummary.cohorts.map((cohort) => (
+                      <TableRow key={cohort.id}>
+                        <TableCell className="font-medium">{cohort.title}</TableCell>
+                        <TableCell>{trainers.find((trainer) => String(trainer.id) === String(cohort.trainerId))?.name || "Unassigned"}</TableCell>
+                        <TableCell>{cohort.startedCount}</TableCell>
+                        <TableCell>{cohort.transitionedCount}</TableCell>
+                        <TableCell>{cohort.compliantCount}</TableCell>
+                        <TableCell>{cohort.coveragePct}%</TableCell>
+                        <TableCell>{cohort.shortfallCount}</TableCell>
+                        <TableCell><StatusBadge status={cohort.status} domain="compliance" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                        No compliance cohorts match the current filters.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </PremiumCardContent>
           </PremiumCard>
         </TabsContent>
@@ -481,53 +492,52 @@ export default function ComplianceTrackingPage() {
           <PremiumCard>
             <PremiumCardHeader>
               <PremiumCardTitle className="text-lg">Trainer Compliance Coverage</PremiumCardTitle>
+              <PremiumCardDescription>Supervisor summary of class count, coverage, and shortfall by trainer.</PremiumCardDescription>
             </PremiumCardHeader>
             <PremiumCardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead>Trainer</TableHead>
-                      <TableHead className="text-center">Cohorts</TableHead>
-                      <TableHead className="text-center">Started</TableHead>
-                      <TableHead className="text-center">Transitioned</TableHead>
-                      <TableHead className="text-center">Compliant</TableHead>
-                      <TableHead className="text-center">Coverage</TableHead>
-                      <TableHead className="text-center">Shortfall</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {trainerRows.length ? (
-                      trainerRows.map((row) => (
-                        <TableRow key={row.trainerId || row.trainer}>
-                          <TableCell className="font-medium">{row.trainer}</TableCell>
-                          <TableCell className="text-center">{row.cohorts}</TableCell>
-                          <TableCell className="text-center">{row.startedCount}</TableCell>
-                          <TableCell className="text-center">{row.transitionedCount}</TableCell>
-                          <TableCell className="text-center">{row.compliantCount}</TableCell>
-                          <TableCell className="text-center">{row.coveragePct}%</TableCell>
-                          <TableCell className="text-center">{row.shortfallCount}</TableCell>
-                          <TableCell><StatusBadge status={row.status} domain="compliance" /></TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                          No trainer-level compliance summaries are available for the current filters.
-                        </TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead>Trainer</TableHead>
+                    <TableHead>Tracked Cohorts</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead>Transitioned</TableHead>
+                    <TableHead>Compliant</TableHead>
+                    <TableHead>Coverage</TableHead>
+                    <TableHead>Shortfall</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trainerRows.length ? (
+                    trainerRows.map((row) => (
+                      <TableRow key={row.trainerId || row.trainer}>
+                        <TableCell className="font-medium">{row.trainer}</TableCell>
+                        <TableCell>{row.cohorts}</TableCell>
+                        <TableCell>{row.startedCount}</TableCell>
+                        <TableCell>{row.transitionedCount}</TableCell>
+                        <TableCell>{row.compliantCount}</TableCell>
+                        <TableCell>{row.coveragePct}%</TableCell>
+                        <TableCell>{row.shortfallCount}</TableCell>
+                        <TableCell><StatusBadge status={row.status} domain="compliance" /></TableCell>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                        No trainer-level compliance summaries are available for the current filters.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </PremiumCardContent>
           </PremiumCard>
         </TabsContent>
       </Tabs>
 
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Manual Compliance Entry</DialogTitle>
             <DialogDescription>
@@ -536,8 +546,7 @@ export default function ComplianceTrackingPage() {
           </DialogHeader>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Class / Batch</Label>
+            <FilterField label="Class / Batch">
               <Select value={editor.trainingId} onValueChange={(value) => setEditor((current) => ({ ...current, trainingId: value }))}>
                 <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
                 <SelectContent>
@@ -546,10 +555,9 @@ export default function ComplianceTrackingPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FilterField>
 
-            <div className="space-y-2">
-              <Label>Learner</Label>
+            <FilterField label="Learner">
               <Select value={editor.learnerId} onValueChange={handleEditorLearnerChange}>
                 <SelectTrigger><SelectValue placeholder="Select learner" /></SelectTrigger>
                 <SelectContent>
@@ -558,19 +566,18 @@ export default function ComplianceTrackingPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FilterField>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {complianceItems.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-border/60 p-4 space-y-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visibleItems.map((item) => (
+              <div key={item.id} className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-3">
                 <div>
                   <p className="font-semibold">{item.name}</p>
                   <p className="text-xs text-muted-foreground">{item.category}</p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Status</Label>
+                <FilterField label="Status">
                   <Select
                     value={editor.itemStatuses[item.id] || "Not Started"}
                     onValueChange={(value) =>
@@ -588,10 +595,9 @@ export default function ComplianceTrackingPage() {
                       <SelectItem value="Waived">Waived</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+                </FilterField>
 
-                <div className="space-y-2">
-                  <Label>Completed Date</Label>
+                <FilterField label="Completed Date">
                   <Input
                     type="date"
                     value={editor.itemDates[item.id] || ""}
@@ -602,7 +608,7 @@ export default function ComplianceTrackingPage() {
                       }))
                     }
                   />
-                </div>
+                </FilterField>
               </div>
             ))}
           </div>
