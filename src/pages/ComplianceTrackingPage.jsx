@@ -1,43 +1,99 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Plus, ShieldCheck, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { PremiumCard, PremiumCardContent, PremiumCardDescription, PremiumCardHeader, PremiumCardTitle } from "@/components/learning/PremiumCard";
+import {
+  PremiumCard,
+  PremiumCardContent,
+  PremiumCardDescription,
+  PremiumCardHeader,
+  PremiumCardTitle,
+} from "@/components/learning/PremiumCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { buildComplianceLearnerRows, buildComplianceSummary, buildComplianceTrainerRows } from "@/lib/compliance-kpi";
+import { Skeleton } from "@/components/ui/skeleton";
+import { api, ApiError } from "@/data/api";
 import { useAppStore } from "@/store/app-store";
 
 const ALL_VALUE = "all";
+const NONE_VALUE = "none";
 
-const defaultEditorState = {
-  trainingId: "",
-  learnerId: "",
-  notes: "",
-  itemStatuses: {},
-  itemDates: {},
+const STATUS_OPTIONS = ["Completed", "Not Completed", "In Progress", "Not Required"];
+const COMPLIANCE_ITEMS = [
+  "Client Compliance",
+  "Internal Compliance",
+  "LMS Completion",
+  "Policy Review",
+];
+
+const emptyForm = {
+  trainerId: "",
+  programId: "",
+  sessionId: "",
+  studentId: "",
+  complianceItem: COMPLIANCE_ITEMS[0],
+  status: "Completed",
+  completionDate: new Date().toISOString().slice(0, 10),
+  score: "",
+  comments: "",
 };
 
-const resolveTrainerIdForUser = (user) => String(user?.trainerId || user?.id || "");
+const getTrainerId = (t) =>
+  String(t?.id ?? t?.trainerId ?? t?.portalId ?? t?.portalid ?? "");
 
-const formatTrainerName = (trainer) =>
-  trainer?.name ||
-  `${trainer?.firstName || ""} ${trainer?.lastName || ""}`.trim() ||
+const getTrainerName = (t) =>
+  t?.name ||
+  `${t?.firstName || t?.first_name || ""} ${t?.lastName || t?.last_name || ""}`.trim() ||
+  t?.portalId ||
   "Trainer";
 
-const getTrainingLabel = (training) => training?.title || training?.courseCode || training?.id || "Program";
+const studentName = (s) =>
+  s?.name || `${s?.firstName || ""} ${s?.lastName || ""}`.trim() || s?.id || "Learner";
+
+const statusBadgeKind = (status) => {
+  switch (status) {
+    case "Completed":
+      return "On Track";
+    case "In Progress":
+      return "Needs Attention";
+    case "Not Completed":
+      return "Critical";
+    default:
+      return "Pending";
+  }
+};
 
 function FilterField({ label, children }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
@@ -49,191 +105,312 @@ function SummaryCard({ label, value, detail }) {
       <PremiumCardContent className="p-5">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
         <p className="mt-3 text-3xl font-bold">{value}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+        {detail ? <p className="mt-1 text-xs text-muted-foreground">{detail}</p> : null}
       </PremiumCardContent>
     </PremiumCard>
   );
 }
 
 export default function ComplianceTrackingPage() {
-  const user = useAppStore((state) => state.user);
-  const trainings = useAppStore((state) => state.trainings);
-  const sessions = useAppStore((state) => state.sessions);
-  const students = useAppStore((state) => state.students);
-  const enrollments = useAppStore((state) => state.enrollments);
-  const trainers = useAppStore((state) => state.trainers);
-  const complianceItems = useAppStore((state) => state.complianceItems);
-  const complianceRecords = useAppStore((state) => state.complianceRecords);
-  const upsertComplianceRecords = useAppStore((state) => state.upsertComplianceRecords);
+  const queryClient = useQueryClient();
+  const user = useAppStore((s) => s.user);
+  const localTrainers = useAppStore((s) => s.trainers);
+  const trainings = useAppStore((s) => s.trainings);
+  const sessions = useAppStore((s) => s.sessions);
+  const students = useAppStore((s) => s.students);
+  const enrollments = useAppStore((s) => s.enrollments);
+  const logAdminEvent = useAppStore((s) => s.logAdminEvent);
 
-  const isTrainer = user?.role === "trainer";
-  const currentTrainerId = resolveTrainerIdForUser(user);
+  const trainersQuery = useQuery({
+    queryKey: ["compliance", "trainers"],
+    queryFn: () => api.trainers.list(),
+    staleTime: 60_000,
+  });
 
-  const [trainerFilter, setTrainerFilter] = useState(isTrainer ? currentTrainerId : ALL_VALUE);
-  const [trainingFilter, setTrainingFilter] = useState(ALL_VALUE);
-  const [learnerFilter, setLearnerFilter] = useState(ALL_VALUE);
+  const trainers = useMemo(() => {
+    const remote = trainersQuery.data;
+    const list = Array.isArray(remote)
+      ? remote
+      : Array.isArray(remote?.results)
+        ? remote.results
+        : Array.isArray(remote?.data)
+          ? remote.data
+          : null;
+    return list && list.length ? list : localTrainers || [];
+  }, [trainersQuery.data, localTrainers]);
+
+  const [trainerFilter, setTrainerFilter] = useState(ALL_VALUE);
+  const [programFilter, setProgramFilter] = useState(ALL_VALUE);
+  const [sessionFilter, setSessionFilter] = useState(ALL_VALUE);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editor, setEditor] = useState(defaultEditorState);
 
-  const visibleTrainers = useMemo(
-    () => (isTrainer ? trainers.filter((trainer) => String(trainer.id) === currentTrainerId) : trainers),
-    [currentTrainerId, isTrainer, trainers],
-  );
+  const recordsQuery = useQuery({
+    queryKey: ["compliance", "records", { trainerFilter, programFilter, sessionFilter, dateFrom, dateTo }],
+    queryFn: async () => {
+      const query = {};
+      if (trainerFilter !== ALL_VALUE) query.trainerId = trainerFilter;
+      if (programFilter !== ALL_VALUE) query.programId = programFilter;
+      if (sessionFilter !== ALL_VALUE) query.sessionId = sessionFilter;
+      if (dateFrom) query.startDate = dateFrom;
+      if (dateTo) query.endDate = dateTo;
+      return api.compliance.list(query);
+    },
+    retry: false,
+    staleTime: 30_000,
+  });
 
-  const visibleTrainings = useMemo(() => {
-    const trainerScoped = isTrainer
-      ? trainings.filter((training) => String(training.trainerId || training.trainer_id) === currentTrainerId)
-      : trainings;
+  const [localRecords, setLocalRecords] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem("tms.compliance.records");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
-    return trainerScoped.filter((training) => {
-      const matchesTrainer = trainerFilter === ALL_VALUE || String(training.trainerId || training.trainer_id) === trainerFilter;
-      const matchesTraining = trainingFilter === ALL_VALUE || String(training.id) === trainingFilter;
-      const dateValue = training.startDate || training.start_date || training.endDate || training.end_date || "";
-      const matchesFrom = !dateFrom || dateValue >= dateFrom;
-      const matchesTo = !dateTo || dateValue <= dateTo;
-      return matchesTrainer && matchesTraining && matchesFrom && matchesTo;
+  const persistLocal = (next) => {
+    setLocalRecords(next);
+    try {
+      window.localStorage.setItem("tms.compliance.records", JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const records = useMemo(() => {
+    const remote = recordsQuery.data;
+    const list = Array.isArray(remote)
+      ? remote
+      : Array.isArray(remote?.results)
+        ? remote.results
+        : Array.isArray(remote?.data)
+          ? remote.data
+          : null;
+
+    const base = list && list.length ? list : localRecords;
+
+    return base.filter((r) => {
+      if (trainerFilter !== ALL_VALUE && String(r.trainerId) !== trainerFilter) return false;
+      if (programFilter !== ALL_VALUE && String(r.programId || "") !== programFilter) return false;
+      if (sessionFilter !== ALL_VALUE && String(r.sessionId || "") !== sessionFilter) return false;
+      const date = r.completionDate || (r.updatedAt || "").slice(0, 10);
+      if (dateFrom && date && date < dateFrom) return false;
+      if (dateTo && date && date > dateTo) return false;
+      return true;
     });
-  }, [currentTrainerId, dateFrom, dateTo, isTrainer, trainerFilter, trainingFilter, trainings]);
+  }, [recordsQuery.data, localRecords, trainerFilter, programFilter, sessionFilter, dateFrom, dateTo]);
 
-  const complianceSummary = useMemo(
-    () =>
-      buildComplianceSummary({
-        trainings: visibleTrainings,
-        sessions,
-        students,
-        enrollments,
-        complianceRecords,
-        complianceItems,
-      }),
-    [complianceItems, complianceRecords, enrollments, sessions, students, visibleTrainings],
-  );
+  // Form
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
 
-  const trainerRows = useMemo(
-    () =>
-      buildComplianceTrainerRows({
-        trainers: visibleTrainers,
-        trainings: visibleTrainings,
-        sessions,
-        students,
-        enrollments,
-        complianceRecords,
-        complianceItems,
-      }),
-    [complianceItems, complianceRecords, enrollments, sessions, students, visibleTrainings, visibleTrainers],
-  );
+  const formProgramSessions = useMemo(() => {
+    if (!form.programId) return sessions;
+    return sessions.filter((s) => String(s.trainingId) === String(form.programId));
+  }, [form.programId, sessions]);
 
-  const selectedTrainingId = trainingFilter !== ALL_VALUE ? trainingFilter : "";
-  const learnerRows = useMemo(
-    () =>
-      selectedTrainingId
-        ? buildComplianceLearnerRows({
-            trainingId: selectedTrainingId,
-            trainings: visibleTrainings,
-            sessions,
-            students,
-            enrollments,
-            complianceRecords,
-            complianceItems,
-          })
-        : [],
-    [complianceItems, complianceRecords, enrollments, selectedTrainingId, sessions, students, visibleTrainings],
-  );
+  const formStudents = useMemo(() => {
+    if (!form.programId) return students;
+    const enrolledIds = new Set(
+      enrollments
+        .filter((e) => String(e.trainingId) === String(form.programId))
+        .map((e) => String(e.studentId)),
+    );
+    return students.filter((s) => enrolledIds.has(String(s.id)));
+  }, [form.programId, enrollments, students]);
 
-  const filteredLearnerRows = useMemo(
-    () => learnerRows.filter((row) => learnerFilter === ALL_VALUE || row.learnerId === learnerFilter),
-    [learnerFilter, learnerRows],
-  );
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
+  };
 
-  const selectedTraining = useMemo(
-    () => visibleTrainings.find((training) => String(training.id) === selectedTrainingId) || null,
-    [selectedTrainingId, visibleTrainings],
-  );
+  const openEdit = (record) => {
+    setEditingId(record.id || record.complianceId);
+    setForm({
+      trainerId: String(record.trainerId || ""),
+      programId: String(record.programId || ""),
+      sessionId: String(record.sessionId || ""),
+      studentId: String(record.studentId || ""),
+      complianceItem: record.complianceItem || COMPLIANCE_ITEMS[0],
+      status: record.status || "Completed",
+      completionDate: record.completionDate || "",
+      score: record.score ?? "",
+      comments: record.comments || "",
+    });
+    setDialogOpen(true);
+  };
 
-  const learnerOptions = filteredLearnerRows.length ? filteredLearnerRows : learnerRows;
-  const canEditTraining = !isTrainer || (selectedTraining && String(selectedTraining.trainerId || selectedTraining.trainer_id) === currentTrainerId);
-  const visibleItems = complianceItems.filter((item) => item?.active !== false);
+  const validate = () => {
+    if (!form.trainerId) return "Trainer is required.";
+    if (!form.complianceItem) return "Compliance item is required.";
+    if (!form.status) return "Completion status is required.";
+    if (form.score !== "" && form.score !== null) {
+      const n = Number(form.score);
+      if (!Number.isFinite(n) || n < 0 || n > 100) return "Score must be between 0 and 100.";
+    }
+    return null;
+  };
 
-  const openEditor = (learnerRow = null) => {
-    if (!selectedTrainingId) {
-      toast.error("Select a class or batch before entering compliance.");
+  // Audit risk: agents taking calls vs. agents completed compliance, scoped by current filters
+  const auditRisk = useMemo(() => {
+    let scopedStudents = students;
+    if (programFilter !== ALL_VALUE) {
+      const enrolledIds = new Set(
+        enrollments
+          .filter((e) => String(e.trainingId) === programFilter)
+          .map((e) => String(e.studentId)),
+      );
+      scopedStudents = students.filter((s) => enrolledIds.has(String(s.id)));
+    }
+    const takingCalls = scopedStudents.filter((s) =>
+      ["Active", "Production", "Live", "Taking Calls"].includes(s.status),
+    ).length || scopedStudents.length;
+
+    const completedSet = new Set(
+      records.filter((r) => r.status === "Completed").map((r) => String(r.studentId)),
+    );
+    const completed = completedSet.size;
+    return {
+      takingCalls,
+      completed,
+      atRisk: completed < takingCalls,
+      gap: Math.max(0, takingCalls - completed),
+    };
+  }, [students, enrollments, records, programFilter]);
+
+  const summary = useMemo(() => {
+    const total = records.length;
+    const completed = records.filter((r) => r.status === "Completed").length;
+    const pct = total ? Math.round((completed / total) * 100) : 0;
+    const atRiskClasses = new Set(
+      records.filter((r) => r.status === "Not Completed" && r.programId).map((r) => r.programId),
+    );
+    return {
+      learners: new Set(records.map((r) => r.studentId).filter(Boolean)).size,
+      completed,
+      pct: total ? `${pct}%` : "—",
+      atRiskClasses: atRiskClasses.size,
+      auditRisk: auditRisk.atRisk ? auditRisk.gap : 0,
+    };
+  }, [records, auditRisk]);
+
+  const handleSave = async () => {
+    const error = validate();
+    if (error) {
+      toast.error(error);
       return;
     }
 
-    const nextLearnerRow = learnerRow || learnerRows[0];
-    const nextStatuses = {};
-    const nextDates = {};
+    const trainer = trainers.find((t) => getTrainerId(t) === form.trainerId);
+    const program = trainings.find((t) => String(t.id) === form.programId);
+    const session = sessions.find((s) => String(s.id) === form.sessionId);
+    const student = students.find((s) => String(s.id) === form.studentId);
 
-    visibleItems.forEach((item) => {
-      const existing = nextLearnerRow?.itemStates?.find((state) => state.itemId === item.id);
-      nextStatuses[item.id] = existing?.status || "Not Started";
-      nextDates[item.id] = existing?.completedAt || "";
-    });
+    const payload = {
+      trainerId: form.trainerId,
+      trainerName: getTrainerName(trainer),
+      programId: form.programId || null,
+      programName: program?.title || null,
+      sessionId: form.sessionId || null,
+      sessionName: session?.title || null,
+      studentId: form.studentId || null,
+      studentName: student ? studentName(student) : null,
+      complianceItem: form.complianceItem,
+      status: form.status,
+      completionDate: form.completionDate || null,
+      score: form.score === "" ? null : Number(form.score),
+      comments: form.comments,
+      riskFlag: form.status === "Not Completed",
+      createdBy: user?.portalId || user?.id || "system",
+    };
 
-    setEditor({
-      trainingId: selectedTrainingId,
-      learnerId: nextLearnerRow?.learnerId || "",
-      notes: nextLearnerRow?.itemStates?.find((state) => state.notes)?.notes || "",
-      itemStatuses: nextStatuses,
-      itemDates: nextDates,
-    });
-    setEditorOpen(true);
-  };
-
-  const handleEditorLearnerChange = (learnerId) => {
-    const learnerRow = learnerRows.find((row) => row.learnerId === learnerId);
-    const nextStatuses = {};
-    const nextDates = {};
-
-    visibleItems.forEach((item) => {
-      const existing = learnerRow?.itemStates?.find((state) => state.itemId === item.id);
-      nextStatuses[item.id] = existing?.status || "Not Started";
-      nextDates[item.id] = existing?.completedAt || "";
-    });
-
-    setEditor((current) => ({
-      ...current,
-      learnerId,
-      itemStatuses: nextStatuses,
-      itemDates: nextDates,
-    }));
-  };
-
-  const handleSave = () => {
-    if (!editor.trainingId || !editor.learnerId) {
-      toast.error("Select both a class and learner.");
-      return;
+    setSaving(true);
+    try {
+      if (editingId) {
+        try {
+          await api.compliance.update(editingId, payload);
+        } catch (err) {
+          if (!(err instanceof ApiError) || err.status !== 404) throw err;
+        }
+        const next = localRecords.map((r) =>
+          (r.id || r.complianceId) === editingId
+            ? { ...r, ...payload, id: editingId, updatedAt: new Date().toISOString() }
+            : r,
+        );
+        persistLocal(next);
+        logAdminEvent({
+          action: "Compliance Entry Updated",
+          entityId: editingId,
+          payloadSummary: `Updated compliance for ${payload.studentName || payload.trainerName}.`,
+        });
+        toast.success("Compliance entry updated.");
+      } else {
+        let created = null;
+        try {
+          created = await api.compliance.create(payload);
+        } catch (err) {
+          if (!(err instanceof ApiError) || err.status !== 404) throw err;
+        }
+        const id = created?.id || created?.complianceId || `comp-${Date.now()}`;
+        const record = {
+          id,
+          ...payload,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        persistLocal([record, ...localRecords]);
+        logAdminEvent({
+          action: payload.riskFlag ? "Compliance Risk Flagged" : "Compliance Entry Created",
+          entityId: id,
+          payloadSummary: `${payload.complianceItem} for ${payload.studentName || payload.trainerName}: ${payload.status}.`,
+        });
+        toast.success("Compliance entry saved.");
+      }
+      queryClient.invalidateQueries({ queryKey: ["compliance", "records"] });
+      setDialogOpen(false);
+      setEditingId(null);
+      setForm(emptyForm);
+    } catch (err) {
+      toast.error(err?.message || "Failed to save compliance entry.");
+    } finally {
+      setSaving(false);
     }
-
-    const learner = students.find((student) => String(student.id) === editor.learnerId);
-    const training = trainings.find((item) => String(item.id) === editor.trainingId);
-
-    if (!learner || !training) {
-      toast.error("Unable to resolve the selected learner or class.");
-      return;
-    }
-
-    const updates = visibleItems.map((item) => ({
-      itemId: item.id,
-      status: editor.itemStatuses[item.id] || "Not Started",
-      completedAt: editor.itemDates[item.id] || "",
-      notes: editor.notes,
-    }));
-
-    upsertComplianceRecords({
-      trainingId: editor.trainingId,
-      trainerId: String(training.trainerId || training.trainer_id || learner.trainerId || ""),
-      learnerId: editor.learnerId,
-      learnerName: `${learner.firstName || ""} ${learner.lastName || ""}`.trim() || learner.name || "Learner",
-      updates,
-      notes: editor.notes,
-    });
-
-    toast.success("Compliance records saved.");
-    setEditorOpen(false);
-    setEditor(defaultEditorState);
   };
+
+  const handleDelete = async (record) => {
+    const id = record.id || record.complianceId;
+    if (!id) return;
+    if (!window.confirm(`Delete compliance entry?`)) return;
+    try {
+      try {
+        await api.compliance.remove(id);
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 404) throw err;
+      }
+      persistLocal(localRecords.filter((r) => (r.id || r.complianceId) !== id));
+      logAdminEvent({
+        action: "Compliance Entry Deleted",
+        entityId: id,
+        payloadSummary: `Deleted compliance entry for ${record.studentName || record.trainerName}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["compliance", "records"] });
+      toast.success("Compliance entry deleted.");
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete compliance entry.");
+    }
+  };
+
+  const filterSessions = useMemo(() => {
+    if (programFilter === ALL_VALUE) return sessions;
+    return sessions.filter((s) => String(s.trainingId) === programFilter);
+  }, [programFilter, sessions]);
+
+  const isLoading = trainersQuery.isLoading || recordsQuery.isLoading;
+  const trainerLoadError = trainersQuery.isError;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -241,87 +418,114 @@ export default function ComplianceTrackingPage() {
         icon={ShieldCheck}
         eyebrow="Compliance"
         title="Compliance Tracking"
-        description="Supervisor-managed manual compliance tracking for learner readiness, class coverage, and audit-safe pre-call compliance monitoring."
+        description="Manually track training compliance for trainers, classes, and learners. Pre-call compliance gaps surface as audit risks."
         meta={
           <>
-            <StatusBadge status={complianceSummary.status} domain="compliance" />
+            <StatusBadge
+              status={auditRisk.atRisk ? "Critical" : "On Track"}
+              domain="compliance"
+            />
             <div className="rounded-full border border-border/60 bg-background/70 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              {visibleItems.length} required items
+              {records.length} record{records.length === 1 ? "" : "s"}
             </div>
           </>
         }
         actions={
-          <Button className="rounded-full" onClick={() => openEditor()} disabled={!selectedTrainingId || !canEditTraining}>
+          <Button className="rounded-full" onClick={openCreate} disabled={!trainers.length}>
             <Plus className="mr-2 h-4 w-4" />
-            Manual Entry
+            Add Compliance Entry
           </Button>
         }
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <SummaryCard label="Started" value={complianceSummary.requiredCount} detail="Learners tracked in scope" />
-        <SummaryCard label="Transitioned" value={complianceSummary.transitionedCount} detail="Learners marked ready or completed" />
-        <SummaryCard label="Compliant" value={complianceSummary.compliantCount} detail="Learners meeting all required items" />
-        <SummaryCard label="Completion" value={`${complianceSummary.coveragePct}%`} detail="Current compliance completion rate" />
-        <SummaryCard label="Shortfall" value={complianceSummary.shortfallCount} detail="Compliance gap against transition readiness" />
+        <SummaryCard label="Learners Started" value={summary.learners} detail="Unique learners tracked" />
+        <SummaryCard label="Completed" value={summary.completed} detail="Compliance items completed" />
+        <SummaryCard label="Completion %" value={summary.pct} detail="Across visible records" />
+        <SummaryCard label="Classes at Risk" value={summary.atRiskClasses} detail="Programs with non-completion" />
+        <SummaryCard label="Audit Risk" value={summary.auditRisk} detail="Agents taking calls without compliance" />
       </div>
+
+      {auditRisk.atRisk ? (
+        <div className="rounded-2xl border border-destructive/35 bg-destructive/5 px-5 py-4 text-sm text-destructive">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Audit Risk: pre-call compliance gap</p>
+              <p className="mt-1">
+                {auditRisk.takingCalls} agent(s) taking calls, only {auditRisk.completed} completed compliance.
+                Agents must complete compliance before taking calls.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {trainerLoadError ? (
+        <div className="rounded-2xl border border-amber-300/60 bg-amber-50/50 px-5 py-4 text-sm text-amber-900">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+            <p>Trainer directory could not be loaded from backend. Showing cached trainer list.</p>
+          </div>
+        </div>
+      ) : null}
 
       <PremiumCard>
         <PremiumCardHeader>
           <PremiumCardTitle className="text-lg">Filters</PremiumCardTitle>
-          <PremiumCardDescription>Filter compliance tracking by trainer, class, learner, and date range.</PremiumCardDescription>
+          <PremiumCardDescription>Narrow compliance records.</PremiumCardDescription>
         </PremiumCardHeader>
         <PremiumCardContent className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-          {!isTrainer ? (
-            <FilterField label="Trainer">
-              <Select value={trainerFilter} onValueChange={setTrainerFilter}>
-                <SelectTrigger><SelectValue placeholder="All trainers" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_VALUE}>All trainers</SelectItem>
-                  {visibleTrainers.map((trainer) => (
-                    <SelectItem key={trainer.id} value={String(trainer.id)}>{formatTrainerName(trainer)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FilterField>
-          ) : null}
-
-          <FilterField label="Class / Batch">
-            <Select
-              value={trainingFilter}
-              onValueChange={(value) => {
-                setTrainingFilter(value);
-                setLearnerFilter(ALL_VALUE);
-              }}
-            >
-              <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+          <FilterField label="Trainer">
+            <Select value={trainerFilter} onValueChange={setTrainerFilter}>
+              <SelectTrigger><SelectValue placeholder="All trainers" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_VALUE}>All classes</SelectItem>
-                {visibleTrainings.map((training) => (
-                  <SelectItem key={training.id} value={String(training.id)}>{getTrainingLabel(training)}</SelectItem>
+                <SelectItem value={ALL_VALUE}>All trainers</SelectItem>
+                {trainers.map((t) => (
+                  <SelectItem key={getTrainerId(t)} value={getTrainerId(t)}>
+                    {getTrainerName(t)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </FilterField>
 
-          <FilterField label="Learner">
-            <Select value={learnerFilter} onValueChange={setLearnerFilter}>
-              <SelectTrigger><SelectValue placeholder="All learners" /></SelectTrigger>
+          <FilterField label="Program">
+            <Select
+              value={programFilter}
+              onValueChange={(v) => {
+                setProgramFilter(v);
+                setSessionFilter(ALL_VALUE);
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="All programs" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_VALUE}>All learners</SelectItem>
-                {learnerRows.map((learner) => (
-                  <SelectItem key={learner.learnerId} value={learner.learnerId}>{learner.learnerName}</SelectItem>
+                <SelectItem value={ALL_VALUE}>All programs</SelectItem>
+                {trainings.map((t) => (
+                  <SelectItem key={t.id} value={String(t.id)}>{t.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+
+          <FilterField label="Session / Class">
+            <Select value={sessionFilter} onValueChange={setSessionFilter}>
+              <SelectTrigger><SelectValue placeholder="All sessions" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>All sessions</SelectItem>
+                {filterSessions.map((s) => (
+                  <SelectItem key={s.id} value={String(s.id)}>{s.title}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </FilterField>
 
           <FilterField label="From">
-            <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           </FilterField>
 
           <FilterField label="To">
-            <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </FilterField>
 
           <div className="flex items-end">
@@ -329,304 +533,233 @@ export default function ComplianceTrackingPage() {
               variant="outline"
               className="w-full rounded-full"
               onClick={() => {
-                setTrainerFilter(isTrainer ? currentTrainerId : ALL_VALUE);
-                setTrainingFilter(ALL_VALUE);
-                setLearnerFilter(ALL_VALUE);
+                setTrainerFilter(ALL_VALUE);
+                setProgramFilter(ALL_VALUE);
+                setSessionFilter(ALL_VALUE);
                 setDateFrom("");
                 setDateTo("");
               }}
             >
-              Reset Filters
+              Reset
             </Button>
           </div>
         </PremiumCardContent>
       </PremiumCard>
 
-      {complianceSummary.shortfallCount > 0 ? (
-        <div className="rounded-2xl border border-destructive/35 bg-destructive/5 px-5 py-4 text-sm text-destructive">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-            <div>
-              <p className="font-semibold">Compliance risk detected</p>
-              <p className="mt-1">
-                {complianceSummary.shortfallCount} learner(s) are transitioned or call-ready without matching compliance completion. This violates the pre-call compliance rule and should be corrected immediately.
-              </p>
+      <PremiumCard>
+        <PremiumCardHeader>
+          <PremiumCardTitle className="text-lg">Compliance Records</PremiumCardTitle>
+          <PremiumCardDescription>
+            Manual entries. Records flagged with risk indicate non-completion against pre-call compliance.
+          </PremiumCardDescription>
+        </PremiumCardHeader>
+        <PremiumCardContent className="p-0">
+          {isLoading ? (
+            <div className="space-y-2 p-6">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
-          </div>
-        </div>
-      ) : null}
-
-      <Tabs defaultValue="learners" className="space-y-4">
-        <TabsList className="flex w-fit flex-wrap rounded-full border border-border/50 bg-background/70 p-1">
-          <TabsTrigger value="learners" className="rounded-full">Learner Detail</TabsTrigger>
-          <TabsTrigger value="summary" className="rounded-full">Class Summary</TabsTrigger>
-          <TabsTrigger value="trainers" className="rounded-full">Trainer Summary</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="learners">
-          <PremiumCard>
-            <PremiumCardHeader className="flex flex-row items-center justify-between gap-3">
-              <div>
-                <PremiumCardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="h-5 w-5 text-primary" />
-                  Learner Compliance Detail
-                </PremiumCardTitle>
-                <PremiumCardDescription>Manual item-by-item compliance entry linked to the selected class and learner.</PremiumCardDescription>
-              </div>
-              <Button variant="outline" className="rounded-full" onClick={() => openEditor()} disabled={!selectedTrainingId || !canEditTraining}>
-                <Plus className="mr-2 h-4 w-4" />
-                Update Learner
-              </Button>
-            </PremiumCardHeader>
-            <PremiumCardContent className="p-0">
-              {!selectedTrainingId ? (
-                <div className="py-10 text-center text-sm text-muted-foreground">
-                  Select a class or batch to review learner-level compliance and enter manual updates.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead>Learner</TableHead>
-                      <TableHead>Lifecycle</TableHead>
-                      <TableHead>Completion</TableHead>
-                      {visibleItems.map((item) => (
-                        <TableHead key={item.id}>{item.name}</TableHead>
-                      ))}
-                      <TableHead>Last Completed</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLearnerRows.length ? (
-                      filteredLearnerRows.map((learner) => (
-                        <TableRow key={learner.learnerId}>
-                          <TableCell className="font-medium">{learner.learnerName}</TableCell>
-                          <TableCell><StatusBadge status={learner.lifecycle.status} domain="learner" /></TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-semibold">{learner.completionPct}%</div>
-                              <div className="text-xs text-muted-foreground">
-                                {learner.completedItems}/{learner.requiredItems} items complete
-                              </div>
-                            </div>
-                          </TableCell>
-                          {visibleItems.map((item) => {
-                            const itemState = learner.itemStates.find((state) => String(state.itemId) === String(item.id));
-                            return (
-                              <TableCell key={item.id}>
-                                <StatusBadge status={itemState?.status || "Not Started"} domain="compliance" />
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell>{learner.lastCompletedAt || "Pending"}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => openEditor(learner)} disabled={!canEditTraining}>
-                              Edit
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={visibleItems.length + 5} className="py-8 text-center text-sm text-muted-foreground">
-                          No learners match the current filters.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </PremiumCardContent>
-          </PremiumCard>
-        </TabsContent>
-
-        <TabsContent value="summary">
-          <PremiumCard>
-            <PremiumCardHeader>
-              <PremiumCardTitle className="text-lg">Class Compliance Summary</PremiumCardTitle>
-              <PremiumCardDescription>Coverage, transition readiness, and shortfall risk by cohort.</PremiumCardDescription>
-            </PremiumCardHeader>
-            <PremiumCardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead>Class / Batch</TableHead>
-                    <TableHead>Trainer</TableHead>
-                    <TableHead>Started</TableHead>
-                    <TableHead>Transitioned</TableHead>
-                    <TableHead>Compliant</TableHead>
-                    <TableHead>Coverage</TableHead>
-                    <TableHead>Shortfall</TableHead>
-                    <TableHead>Status</TableHead>
+          ) : records.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead>Trainer</TableHead>
+                  <TableHead>Program</TableHead>
+                  <TableHead>Session</TableHead>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Compliance Item</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Completion</TableHead>
+                  <TableHead>Score %</TableHead>
+                  <TableHead>Risk</TableHead>
+                  <TableHead>Last Updated</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {records.map((r) => (
+                  <TableRow key={r.id || r.complianceId}>
+                    <TableCell className="font-medium">{r.trainerName || "—"}</TableCell>
+                    <TableCell>{r.programName || "—"}</TableCell>
+                    <TableCell>{r.sessionName || "—"}</TableCell>
+                    <TableCell>{r.studentName || "—"}</TableCell>
+                    <TableCell>{r.complianceItem}</TableCell>
+                    <TableCell><StatusBadge status={statusBadgeKind(r.status)} domain="compliance" /></TableCell>
+                    <TableCell>{r.completionDate || "—"}</TableCell>
+                    <TableCell>{r.score === null || r.score === undefined || r.score === "" ? "—" : `${r.score}%`}</TableCell>
+                    <TableCell>
+                      {r.riskFlag ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                          <AlertTriangle className="h-3 w-3" /> Risk
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {(r.updatedAt || r.createdAt || "").slice(0, 10) || "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="inline-flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(r)} aria-label="Edit">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(r)} aria-label="Delete">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {complianceSummary.cohorts.length ? (
-                    complianceSummary.cohorts.map((cohort) => (
-                      <TableRow key={cohort.id}>
-                        <TableCell className="font-medium">{cohort.title}</TableCell>
-                        <TableCell>{trainers.find((trainer) => String(trainer.id) === String(cohort.trainerId))?.name || "Unassigned"}</TableCell>
-                        <TableCell>{cohort.startedCount}</TableCell>
-                        <TableCell>{cohort.transitionedCount}</TableCell>
-                        <TableCell>{cohort.compliantCount}</TableCell>
-                        <TableCell>{cohort.coveragePct}%</TableCell>
-                        <TableCell>{cohort.shortfallCount}</TableCell>
-                        <TableCell><StatusBadge status={cohort.status} domain="compliance" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                        No compliance cohorts match the current filters.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </PremiumCardContent>
-          </PremiumCard>
-        </TabsContent>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              No compliance records found. Add a compliance entry to begin tracking completion.
+            </div>
+          )}
+        </PremiumCardContent>
+      </PremiumCard>
 
-        <TabsContent value="trainers">
-          <PremiumCard>
-            <PremiumCardHeader>
-              <PremiumCardTitle className="text-lg">Trainer Compliance Coverage</PremiumCardTitle>
-              <PremiumCardDescription>Supervisor summary of class count, coverage, and shortfall by trainer.</PremiumCardDescription>
-            </PremiumCardHeader>
-            <PremiumCardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead>Trainer</TableHead>
-                    <TableHead>Tracked Cohorts</TableHead>
-                    <TableHead>Started</TableHead>
-                    <TableHead>Transitioned</TableHead>
-                    <TableHead>Compliant</TableHead>
-                    <TableHead>Coverage</TableHead>
-                    <TableHead>Shortfall</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {trainerRows.length ? (
-                    trainerRows.map((row) => (
-                      <TableRow key={row.trainerId || row.trainer}>
-                        <TableCell className="font-medium">{row.trainer}</TableCell>
-                        <TableCell>{row.cohorts}</TableCell>
-                        <TableCell>{row.startedCount}</TableCell>
-                        <TableCell>{row.transitionedCount}</TableCell>
-                        <TableCell>{row.compliantCount}</TableCell>
-                        <TableCell>{row.coveragePct}%</TableCell>
-                        <TableCell>{row.shortfallCount}</TableCell>
-                        <TableCell><StatusBadge status={row.status} domain="compliance" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                        No trainer-level compliance summaries are available for the current filters.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </PremiumCardContent>
-          </PremiumCard>
-        </TabsContent>
-      </Tabs>
-
-      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="max-w-4xl">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Manual Compliance Entry</DialogTitle>
+            <DialogTitle>{editingId ? "Edit Compliance Entry" : "Add Compliance Entry"}</DialogTitle>
             <DialogDescription>
-              Capture or update learner compliance completion for the selected class. These changes feed KPI scorecards, reporting, and audit history.
+              Capture compliance completion linked to trainer, class, and learner.
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <FilterField label="Class / Batch">
-              <Select value={editor.trainingId} onValueChange={(value) => setEditor((current) => ({ ...current, trainingId: value }))}>
-                <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+            <div className="space-y-2">
+              <Label>Trainer *</Label>
+              <Select value={form.trainerId} onValueChange={(v) => setForm((f) => ({ ...f, trainerId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select trainer" /></SelectTrigger>
                 <SelectContent>
-                  {visibleTrainings.map((training) => (
-                    <SelectItem key={training.id} value={String(training.id)}>{getTrainingLabel(training)}</SelectItem>
+                  {trainers.map((t) => (
+                    <SelectItem key={getTrainerId(t)} value={getTrainerId(t)}>{getTrainerName(t)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </FilterField>
+            </div>
 
-            <FilterField label="Learner">
-              <Select value={editor.learnerId} onValueChange={handleEditorLearnerChange}>
+            <div className="space-y-2">
+              <Label>Program</Label>
+              <Select
+                value={form.programId || NONE_VALUE}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    programId: v === NONE_VALUE ? "" : v,
+                    sessionId: "",
+                    studentId: "",
+                  }))
+                }
+              >
+                <SelectTrigger><SelectValue placeholder="Select program" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>—</SelectItem>
+                  {trainings.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>{t.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Session / Class</Label>
+              <Select
+                value={form.sessionId || NONE_VALUE}
+                onValueChange={(v) => setForm((f) => ({ ...f, sessionId: v === NONE_VALUE ? "" : v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Select session" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>—</SelectItem>
+                  {formProgramSessions.map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Student / Learner</Label>
+              <Select
+                value={form.studentId || NONE_VALUE}
+                onValueChange={(v) => setForm((f) => ({ ...f, studentId: v === NONE_VALUE ? "" : v }))}
+              >
                 <SelectTrigger><SelectValue placeholder="Select learner" /></SelectTrigger>
                 <SelectContent>
-                  {learnerOptions.map((learner) => (
-                    <SelectItem key={learner.learnerId} value={learner.learnerId}>{learner.learnerName}</SelectItem>
+                  <SelectItem value={NONE_VALUE}>—</SelectItem>
+                  {formStudents.map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>{studentName(s)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </FilterField>
-          </div>
+            </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visibleItems.map((item) => (
-              <div key={item.id} className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-3">
-                <div>
-                  <p className="font-semibold">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.category}</p>
-                </div>
+            <div className="space-y-2">
+              <Label>Compliance Item *</Label>
+              <Select value={form.complianceItem} onValueChange={(v) => setForm((f) => ({ ...f, complianceItem: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {COMPLIANCE_ITEMS.map((item) => (
+                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                <FilterField label="Status">
-                  <Select
-                    value={editor.itemStatuses[item.id] || "Not Started"}
-                    onValueChange={(value) =>
-                      setEditor((current) => ({
-                        ...current,
-                        itemStatuses: { ...current.itemStatuses, [item.id]: value },
-                      }))
-                    }
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Not Started">Not Started</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Waived">Waived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FilterField>
+            <div className="space-y-2">
+              <Label>Completion Status *</Label>
+              <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                <FilterField label="Completed Date">
-                  <Input
-                    type="date"
-                    value={editor.itemDates[item.id] || ""}
-                    onChange={(event) =>
-                      setEditor((current) => ({
-                        ...current,
-                        itemDates: { ...current.itemDates, [item.id]: event.target.value },
-                      }))
-                    }
-                  />
-                </FilterField>
-              </div>
-            ))}
-          </div>
+            <div className="space-y-2">
+              <Label>Completion Date</Label>
+              <Input
+                type="date"
+                value={form.completionDate}
+                onChange={(e) => setForm((f) => ({ ...f, completionDate: e.target.value }))}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea
-              value={editor.notes}
-              onChange={(event) => setEditor((current) => ({ ...current, notes: event.target.value }))}
-              placeholder="Add audit notes, blockers, or completion context..."
-            />
+            <div className="space-y-2">
+              <Label>Score % (0–100)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={form.score}
+                onChange={(e) => setForm((f) => ({ ...f, score: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label>Comments</Label>
+              <Textarea
+                rows={3}
+                value={form.comments}
+                onChange={(e) => setForm((f) => ({ ...f, comments: e.target.value }))}
+                placeholder="Notes, evidence link, follow-ups…"
+              />
+            </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditorOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Save Compliance
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Update Entry" : "Save Entry"}
             </Button>
           </DialogFooter>
         </DialogContent>

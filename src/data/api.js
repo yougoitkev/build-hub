@@ -963,6 +963,28 @@ export const createApiClient = () => ({
     kpi: (options = {}) => request("/reports/local/kpi", options),
     trainerAttendance: (options = {}) => request("/reports/local/trainer-attendance", options),
   },
+
+  kpi: {
+    list: (query, options = {}) =>
+      request("/kpi", { method: "GET", query, cache: false, ...options }),
+    create: (payload, options = {}) =>
+      request("/kpi", { method: "POST", body: payload, ...options }),
+    update: (id, payload, options = {}) =>
+      request(`/kpi/${encodeURIComponent(id)}`, { method: "PUT", body: payload, ...options }),
+    remove: (id, options = {}) =>
+      request(`/kpi/${encodeURIComponent(id)}`, { method: "DELETE", ...options }),
+  },
+
+  compliance: {
+    list: (query, options = {}) =>
+      request("/compliance", { method: "GET", query, cache: false, ...options }),
+    create: (payload, options = {}) =>
+      request("/compliance", { method: "POST", body: payload, ...options }),
+    update: (id, payload, options = {}) =>
+      request(`/compliance/${encodeURIComponent(id)}`, { method: "PUT", body: payload, ...options }),
+    remove: (id, options = {}) =>
+      request(`/compliance/${encodeURIComponent(id)}`, { method: "DELETE", ...options }),
+  },
 });
 
 export const api = createApiClient();
